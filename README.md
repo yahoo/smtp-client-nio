@@ -38,7 +38,7 @@ This library is built and managed using [maven](https://maven.apache.org/what-is
 <dependency>
   <groupId>com.yahoo.smtpnio</groupId>
   <artifactId>smtpnio.core</artifactId>
-  <version>1.0.0</version>
+  <version>1.1.0</version>
 </dependency>
 ```
 
@@ -140,9 +140,21 @@ smtpClient.shutdown();
 
 ## Release
 
-This release, version 1.0.0, is the first official release. The current supported SMTP commands are:
+This release, version 1.1.0, is the second official release. The current supported SMTP commands are:
 - **EHLO**
+- **HELO**
+- **DATA**
+- **EXPN**
+- **HELO**
+- **MAIL**
+- **HELP**
+- **NOOP**
+- **VRFY**
+- **RSET**
+- **RCPT**
+- **AUTH**
 - **QUIT**
+
 
 ## Contribute
 

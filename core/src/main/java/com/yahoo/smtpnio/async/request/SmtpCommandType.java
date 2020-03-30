@@ -12,6 +12,36 @@ public enum SmtpCommandType {
     /** The Extended Hello command (EHLO). */
     EHLO,
 
+    /** The Hello command. */
+    HELO,
+
+    /** The Mail command. */
+    MAIL,
+
+    /** The Recipient command. */
+    RCPT,
+
+    /** The Data command. */
+    DATA,
+
+    /** The Reset command. */
+    RSET,
+
+    /** The Noop command. */
+    NOOP,
+
     /** The Quit command (QUIT). */
-    QUIT
+    QUIT,
+
+    /** The Verify command. */
+    VRFY,
+
+    /** The Authentication command. */
+    AUTH,
+
+    /** The Help command. */
+    HELP,
+
+    /** The Expand command. */
+    EXPN
 }
