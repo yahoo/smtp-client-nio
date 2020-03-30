@@ -25,9 +25,6 @@ public class AuthenticationLoginCommand extends AbstractAuthenticationCommand {
     /** String in place of the actual password in the debugging data. */
     private static final String LOG_PASSWORD_PLACEHOLDER = "<password>";
 
-    /** String literal for "LOGIN". */
-    private static final String LOGIN = "LOGIN";
-
     /** Username for the login (base64 encoded string). */
     private String username;
 
