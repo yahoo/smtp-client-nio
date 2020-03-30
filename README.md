@@ -44,7 +44,7 @@ This library is built and managed using [maven](https://maven.apache.org/what-is
 <dependency>
   <groupId>com.yahoo.smtpnio</groupId>
   <artifactId>smtpnio.core</artifactId>
-  <version>1.0.8</version>
+  <version>1.1.0</version>
 </dependency>
 ```
 
@@ -167,7 +167,20 @@ Version 1.0.4 adds startTls support.
 > 2. Then send STARTTLS command and check if response code is 220.
 > 3. Finally, upgrade plain connection to secure connection.
 
-
+This release, version 1.1.0, is the second official release. After this release, current supported SMTP commands are:
+- **EHLO**
+- **HELO**
+- **AUTH** (PLAIN, LOGIN, XOAUTH2)
+- **DATA**
+- **EXPN**
+- **HELO**
+- **MAIL**
+- **HELP**
+- **NOOP**
+- **VRFY**
+- **RSET**
+- **RCPT**
+- **QUIT**
 
 ## Contribute
 
