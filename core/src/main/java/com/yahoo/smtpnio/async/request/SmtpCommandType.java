@@ -12,6 +12,9 @@ public enum SmtpCommandType {
     /** The Extended Hello command (EHLO). */
     EHLO,
 
+    /** The Hello command (HELO). */
+    HELO,
+
     /** The Quit command (QUIT). */
     QUIT
 }
