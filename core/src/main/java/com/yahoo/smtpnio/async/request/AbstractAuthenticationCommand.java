@@ -7,6 +7,7 @@ package com.yahoo.smtpnio.async.request;
 import java.nio.charset.StandardCharsets;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -20,16 +21,17 @@ public abstract class AbstractAuthenticationCommand extends AbstractSmtpCommand 
     private static final String AUTH = "AUTH";
 
     /** String in place of the actual secret in the debugging data. */
-    private static final String SECRET = "<secret>";
+    private static final String SECRET_PLACEHOLDER = "<secret>";
 
     /** Mechanism used for authentication. */
     private String mechanism;
 
     /** Authentication secret. */
+    @Nullable
     private String secret;
 
     /**
-     * Initializes an AUTH command object used to authenticate via a specified SASL mechanism.
+     * Initializes an AUTH command object used to authenticate via a specified SASL mechanism that can be completed in one command.
      *
      * @param mechanism authentication mechanism
      * @param secret authentication secret
@@ -41,7 +43,18 @@ public abstract class AbstractAuthenticationCommand extends AbstractSmtpCommand 
     }
 
     /**
-     * @return mechanism as a string.
+     * Initializes an AUTH command object used to authenticate via a specified SASL mechanism that cannot be completed in one command
+     * and requires additional challenge responses from the server.
+     *
+     * @param mechanism authentication mechanism
+     */
+    protected AbstractAuthenticationCommand(@Nonnull final String mechanism) {
+        super(AUTH);
+        this.mechanism = mechanism;
+    }
+
+    /**
+     * @return the mechanism as a string.
      */
     public String getMechanism() {
         return mechanism;
@@ -50,13 +63,14 @@ public abstract class AbstractAuthenticationCommand extends AbstractSmtpCommand 
     @Nonnull
     @Override
     public ByteBuf getCommandLineBytes() {
-        return Unpooled.buffer(command.length() + mechanism.length() + CRLF_B.length + SmtpClientConstants.PADDING_LEN)
+        final ByteBuf result = Unpooled.buffer(command.length() + mechanism.length() + CRLF_B.length + SmtpClientConstants.PADDING_LEN)
                 .writeBytes(command.getBytes(StandardCharsets.US_ASCII))
                 .writeByte(SmtpClientConstants.SPACE)
-                .writeBytes(mechanism.getBytes(StandardCharsets.US_ASCII))
-                .writeByte(SmtpClientConstants.SPACE)
-                .writeBytes(secret.getBytes(StandardCharsets.US_ASCII))
-                .writeBytes(CRLF_B);
+                .writeBytes(mechanism.getBytes(StandardCharsets.US_ASCII));
+        if (secret != null) {
+            result.writeByte(SmtpClientConstants.SPACE).writeBytes(secret.getBytes(StandardCharsets.US_ASCII));
+        }
+        return result.writeBytes(CRLF_B);
     }
 
     @Override
@@ -79,6 +93,6 @@ public abstract class AbstractAuthenticationCommand extends AbstractSmtpCommand 
     @Nonnull
     @Override
     public String getDebugData() {
-        return String.format("%s %s %s%s", AUTH, mechanism, SECRET, SmtpClientConstants.CRLF);
+        return String.format("%s %s%s%s", AUTH, mechanism, secret == null ? "" : " " + SECRET_PLACEHOLDER, SmtpClientConstants.CRLF);
     }
 }
