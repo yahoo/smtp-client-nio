@@ -25,7 +25,12 @@ Some of the more distinguishing features of this library are:
 - Leverages the well-established framework [Netty](https://netty.io/)
 - Future-based design enables a clean separation of the SMTP client threads pool and the consumers threads pool
 - Simple Mail Transfer Protocol (SMTP) support [RFC 5321](https://tools.ietf.org/html/rfc5321)
+- **HELO** command support [RFC 821 (Section 3.5)](https://tools.ietf.org/html/rfc821#section-3.5)
 - **EHLO** command support [RFC 1869 (Section 4)](https://tools.ietf.org/html/rfc1869#section-4)
+- **AUTH** command support [RFC 4954](https://tools.ietf.org/html/rfc4954)
+  - *PLAIN* [RFC 4616](https://tools.ietf.org/html/rfc4616)
+  - *LOGIN* [RFC Draft](https://www.ietf.org/archive/id/draft-murchison-sasl-login-00.txt)
+  - *XOAUTH2* [RFC 7628](https://tools.ietf.org/html/rfc7628)
 - **QUIT** command support [RFC 5321 (Section 4.1.1.10)](https://tools.ietf.org/html/rfc5321#section-4.1.1.10)
 
 
@@ -38,7 +43,7 @@ This library is built and managed using [maven](https://maven.apache.org/what-is
 <dependency>
   <groupId>com.yahoo.smtpnio</groupId>
   <artifactId>smtpnio.core</artifactId>
-  <version>1.0.2</version>
+  <version>1.0.3</version>
 </dependency>
 ```
 
@@ -140,8 +145,18 @@ smtpClient.shutdown();
 
 ## Release
 
-This release, version 1.0.0, is the first official release. The current supported SMTP commands are:
+This release, version 1.0.3, supports the following SMTP commands:
 - **EHLO**
+- **HELO**
+<<<<<<< HEAD
+<<<<<<< HEAD
+- **AUTH** (PLAIN, LOGIN, XOAUTH2)
+=======
+- **AUTH** (PLAIN, LOGIN)
+>>>>>>> 81a62c3... Revising the AUTH architecture + PR revision
+=======
+- **AUTH** (PLAIN, LOGIN, XOAUTH2)
+>>>>>>> 0142318... Adding XOAUTH2 support
 - **QUIT**
 
 ## Contribute

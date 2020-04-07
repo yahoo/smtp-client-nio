@@ -9,4 +9,9 @@ package com.yahoo.smtpnio.async.request;
  */
 public interface SmtpCommandType {
 
+    /**
+     * @return the type of the command
+     */
+    String getType();
 }
+
