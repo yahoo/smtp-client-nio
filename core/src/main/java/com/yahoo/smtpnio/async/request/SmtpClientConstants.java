@@ -13,6 +13,15 @@ final class SmtpClientConstants {
     /** Length of a char. */
     static final int CHAR_LEN = "a".length();
 
+    /** A set padding length. */
+    static final int PADDING_LEN = 40;
+
+    /** String for CRLF. */
+    static final String CRLF = "\r\n";
+
+    /** NULL character. */
+    static final char NULL = '\0';
+
     /** Private constructor to avoid constructing instance of this class. */
     private SmtpClientConstants() {
     }

@@ -16,5 +16,27 @@ public enum SmtpCommandType {
     HELO,
 
     /** The Quit command (QUIT). */
-    QUIT
+    QUIT,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    /** The Authentication command (AUTH). */
+    AUTH,
+
 }
