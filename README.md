@@ -140,8 +140,10 @@ smtpClient.shutdown();
 
 ## Release
 
-This release, version 1.0.0, is the first official release. The current supported SMTP commands are:
+This release, version 1.0.3, supports the following SMTP commands:
 - **EHLO**
+- **HELO**
+- **AUTH** (PLAIN, LOGIN)
 - **QUIT**
 
 ## Contribute

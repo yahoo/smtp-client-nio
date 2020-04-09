@@ -18,25 +18,6 @@ public enum SmtpCommandType {
     /** The Quit command (QUIT). */
     QUIT,
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     /** The Authentication command (AUTH). */
-    AUTH,
-
+    AUTH
 }

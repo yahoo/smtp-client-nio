@@ -22,10 +22,10 @@ public class AuthenticationLoginCommand extends AbstractAuthenticationCommand {
     private static final String LOGIN = "LOGIN";
 
     /** String in place of the actual username in the debugging data. */
-    private static final String USERNAME_PLACEHOLDER = "<username>";
+    private static final String LOG_USERNAME_PLACEHOLDER = "<username>";
 
     /** String in place of the actual password in the debugging data. */
-    private static final String PASSWORD_PLACEHOLDER = "<password>";
+    private static final String LOG_PASSWORD_PLACEHOLDER = "<password>";
 
     /** Username for the login (base64 encoded string). */
     private String username;
@@ -64,6 +64,13 @@ public class AuthenticationLoginCommand extends AbstractAuthenticationCommand {
         nextInputState = InputState.USERNAME;
     }
 
+    @Nonnull
+    @Override
+    public ByteBuf getCommandLineBytes() {
+        return super.getCommandLineBytes()
+                .writeBytes(CRLF_B);
+    }
+
     @Override
     public ByteBuf getNextCommandLineAfterContinuation(@Nonnull final SmtpResponse serverResponse) {
         final String input;
@@ -94,13 +101,13 @@ public class AuthenticationLoginCommand extends AbstractAuthenticationCommand {
     @Override
     public String getDebugData() {
         if (this.nextInputState == InputState.USERNAME) {
-            return super.getDebugData();
+            return super.getDebugData() + SmtpClientConstants.CRLF;
         }
         if (this.nextInputState == InputState.PASSWORD) {
-            return USERNAME_PLACEHOLDER + SmtpClientConstants.CRLF;
+            return LOG_USERNAME_PLACEHOLDER + SmtpClientConstants.CRLF;
         }
         if (this.nextInputState == InputState.COMPLETED) {
-            return PASSWORD_PLACEHOLDER + SmtpClientConstants.CRLF;
+            return LOG_PASSWORD_PLACEHOLDER + SmtpClientConstants.CRLF;
         }
         return SmtpClientConstants.CRLF;
     }
