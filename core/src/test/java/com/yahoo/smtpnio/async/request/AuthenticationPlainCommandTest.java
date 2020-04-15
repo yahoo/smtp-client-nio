@@ -48,7 +48,7 @@ public class AuthenticationPlainCommandTest {
      * @throws IllegalAccessException will not throw in this test
      */
     @Test
-    public void testGetCommandLineConstructorUserPass() throws SmtpAsyncClientException, IllegalAccessException {
+    public void testConstructorUsernamePassword() throws SmtpAsyncClientException, IllegalAccessException {
         final SmtpRequest cmd = new AuthenticationPlainCommand("test_user123@example.com", "PasswordisPassword!");
         Assert.assertEquals(cmd.getCommandLineBytes().toString(StandardCharsets.US_ASCII),
                 "AUTH PLAIN AHRlc3RfdXNlcjEyM0BleGFtcGxlLmNvbQBQYXNzd29yZGlzUGFzc3dvcmQh\r\n", "Expected results mismatched");
@@ -64,18 +64,18 @@ public class AuthenticationPlainCommandTest {
     }
 
     /**
-     * Tests the constructor taking the base64 encoded string.
+     * Tests the constructor taking in the authorization id, username and password in plaintext.
      *
      * @throws SmtpAsyncClientException will not throw in this test
      * @throws IllegalAccessException will not throw in this test
      */
     @Test
-    public void testGetCommandLineConstructorSecret() throws SmtpAsyncClientException, IllegalAccessException {
-        final SmtpRequest cmd = new AuthenticationPlainCommand("ThisShouldAlreadyBeBase64Encoded!");
+    public void testConstructorAuthIdUsernamePassword() throws SmtpAsyncClientException, IllegalAccessException {
+        final SmtpRequest cmd = new AuthenticationPlainCommand("myid", "test_user123@example.com", "PasswordisPassword!");
         Assert.assertEquals(cmd.getCommandLineBytes().toString(StandardCharsets.US_ASCII),
-                "AUTH PLAIN ThisShouldAlreadyBeBase64Encoded!\r\n", "Expected results mismatched");
+                "AUTH PLAIN bXlpZAB0ZXN0X3VzZXIxMjNAZXhhbXBsZS5jb20AUGFzc3dvcmRpc1Bhc3N3b3JkIQ==\r\n", "Expected results mismatched");
         Assert.assertEquals(cmd.getCommandLineBytes().toString(StandardCharsets.US_ASCII),
-                "AUTH" + SmtpClientConstants.SPACE + "PLAIN ThisShouldAlreadyBeBase64Encoded!"
+                "AUTH" + SmtpClientConstants.SPACE + "PLAIN bXlpZAB0ZXN0X3VzZXIxMjNAZXhhbXBsZS5jb20AUGFzc3dvcmRpc1Bhc3N3b3JkIQ=="
                         + SmtpClientConstants.CRLF, "Expected results mismatched");
         Assert.assertTrue(cmd.isCommandLineDataSensitive());
         cmd.cleanup();
@@ -86,38 +86,10 @@ public class AuthenticationPlainCommandTest {
     }
 
     /**
-     * This tests two equivalent commands using the two different constructors.
-     *
-     * @throws SmtpAsyncClientException will not throw in this test
-     * @throws IllegalAccessException will not throw in this test
-     */
-    @Test
-    public void testEquivalentResponses() throws SmtpAsyncClientException, IllegalAccessException {
-        final SmtpRequest cmd = new AuthenticationPlainCommand("me.user@test.org", "this is my password?");
-        final SmtpRequest cmd2 = new AuthenticationPlainCommand("AG1lLnVzZXJAdGVzdC5vcmcAdGhpcyBpcyBteSBwYXNzd29yZD8=");
-
-        final String expected = "AUTH PLAIN AG1lLnVzZXJAdGVzdC5vcmcAdGhpcyBpcyBteSBwYXNzd29yZD8=\r\n";
-        Assert.assertEquals(cmd.getCommandLineBytes().toString(StandardCharsets.US_ASCII), expected , "Expected results mismatched");
-        Assert.assertEquals(cmd2.getCommandLineBytes().toString(StandardCharsets.US_ASCII), expected , "Expected results mismatched");
-
-        Assert.assertTrue(cmd.isCommandLineDataSensitive());
-        Assert.assertTrue(cmd2.isCommandLineDataSensitive());
-
-        cmd.cleanup();
-        cmd2.cleanup();
-        // Verify if cleanup happened correctly.
-        for (final Field field : fieldsToCheck) {
-            Assert.assertNull(field.get(cmd), "Cleanup should set " + field.getName() + " as null");
-            Assert.assertNull(field.get(cmd2), "Cleanup should set " + field.getName() + " as null");
-        }
-    }
-
-    /**
      * Tests the {@code getMechanism} method.
      */
     @Test
     public void testGetMechanism() {
-        Assert.assertEquals(new AuthenticationPlainCommand("secret").getMechanism(), "PLAIN");
         Assert.assertEquals(new AuthenticationPlainCommand("user", "pass").getMechanism(), "PLAIN");
     }
 
@@ -127,7 +99,6 @@ public class AuthenticationPlainCommandTest {
     @Test
     public void testGetCommandType() {
         Assert.assertEquals(new AuthenticationPlainCommand("user", "password").getCommandType(), SmtpCommandType.AUTH);
-        Assert.assertEquals(new AuthenticationPlainCommand("secret_passphrase").getCommandType(), SmtpCommandType.AUTH);
     }
 
     /**
@@ -146,26 +117,10 @@ public class AuthenticationPlainCommandTest {
     }
 
     /**
-     * Test the behavior of the {@code getNextCommandLineAfterContinuation} method, as well as the correctness of the corresponding exception thrown.
-     */
-    @Test
-    public void testGetNextCommandLineAfterContinuationSecrets() {
-        final SmtpRequest cmd = new AuthenticationPlainCommand("username_password");
-        try {
-            cmd.getNextCommandLineAfterContinuation(new SmtpResponse("400 resp"));
-            Assert.fail("Exception should have been thrown this object");
-        } catch (SmtpAsyncClientException ex) {
-            Assert.assertEquals(ex.getFailureType(), SmtpAsyncClientException.FailureType.OPERATION_NOT_SUPPORTED_FOR_COMMAND,
-                    "Failure type mismatch");
-        }
-    }
-
-    /**
      * Tests the {@code getDebugData} method.
      */
     @Test
     public void testGetDebugData() {
-        Assert.assertEquals(new AuthenticationPlainCommand("Base64 Password").getDebugData(), "AUTH PLAIN <secret>\r\n");
         Assert.assertEquals(new AuthenticationPlainCommand("Alice", "Apple").getDebugData(), "AUTH PLAIN <secret>\r\n");
     }
 }

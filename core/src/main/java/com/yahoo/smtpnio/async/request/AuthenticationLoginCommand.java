@@ -67,7 +67,10 @@ public class AuthenticationLoginCommand extends AbstractAuthenticationCommand {
     @Nonnull
     @Override
     public ByteBuf getCommandLineBytes() {
-        return super.getCommandLineBytes()
+        return Unpooled.buffer(command.length() + mechanism.length() + CRLF_B.length + SmtpClientConstants.PADDING_LEN)
+                .writeBytes(AUTH_B)
+                .writeByte(SmtpClientConstants.SPACE)
+                .writeBytes(mechanism.getBytes(StandardCharsets.US_ASCII))
                 .writeBytes(CRLF_B);
     }
 
@@ -101,7 +104,7 @@ public class AuthenticationLoginCommand extends AbstractAuthenticationCommand {
     @Override
     public String getDebugData() {
         if (this.nextInputState == InputState.USERNAME) {
-            return super.getDebugData() + SmtpClientConstants.CRLF;
+            return AUTH + SmtpClientConstants.SPACE + mechanism + SmtpClientConstants.CRLF;
         }
         if (this.nextInputState == InputState.PASSWORD) {
             return LOG_USERNAME_PLACEHOLDER + SmtpClientConstants.CRLF;

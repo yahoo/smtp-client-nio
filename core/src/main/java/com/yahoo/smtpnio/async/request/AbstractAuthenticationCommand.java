@@ -8,19 +8,19 @@ import java.nio.charset.StandardCharsets;
 
 import javax.annotation.Nonnull;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-
 /**
  * This is the base class for all Authentication (AUTH) commands.
  */
 public abstract class AbstractAuthenticationCommand extends AbstractSmtpCommand {
 
     /** String literal for "AUTH". */
-    private static final String AUTH = "AUTH";
+    protected static final String AUTH = "AUTH";
+
+    /** Byte array for "AUTH". */
+    protected static final byte[] AUTH_B = AUTH.getBytes(StandardCharsets.US_ASCII);
 
     /** Mechanism used for authentication. */
-    private String mechanism;
+    protected String mechanism;
 
     /**
      * Initializes an AUTH command object used to authenticate via a specified SASL mechanism that cannot be completed in one command
@@ -40,15 +40,6 @@ public abstract class AbstractAuthenticationCommand extends AbstractSmtpCommand 
         return mechanism;
     }
 
-    @Nonnull
-    @Override
-    public ByteBuf getCommandLineBytes() {
-        return Unpooled.buffer(command.length() + mechanism.length() + CRLF_B.length + SmtpClientConstants.PADDING_LEN)
-                .writeBytes(command.getBytes(StandardCharsets.US_ASCII))
-                .writeByte(SmtpClientConstants.SPACE)
-                .writeBytes(mechanism.getBytes(StandardCharsets.US_ASCII));
-    }
-
     @Override
     public void cleanup() {
         super.cleanup();
@@ -63,11 +54,5 @@ public abstract class AbstractAuthenticationCommand extends AbstractSmtpCommand 
     @Override
     public boolean isCommandLineDataSensitive() {
         return true;
-    }
-
-    @Nonnull
-    @Override
-    public String getDebugData() {
-        return AUTH + SmtpClientConstants.SPACE + mechanism;
     }
 }
