@@ -66,9 +66,10 @@ public class ExtendedHelloCommandTest {
      */
     @Test
     public void testGetCommandType() {
-        Assert.assertSame(new ExtendedHelloCommand("test.client.me").getCommandType(), SmtpCommandType.EHLO,
+        Assert.assertSame(new ExtendedHelloCommand("test.client.me").getCommandType(),
+                SmtpRFCSupportedCommandType.EHLO,
                 "Unexpected command type");
-        Assert.assertEquals(SmtpCommandType.EHLO, SmtpCommandType.valueOf("EHLO"), "Unexpected command value");
+        Assert.assertEquals(SmtpRFCSupportedCommandType.EHLO, SmtpRFCSupportedCommandType.valueOf("EHLO"), "Unexpected command value");
     }
 
     /**

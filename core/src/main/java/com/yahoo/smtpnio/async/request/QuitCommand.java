@@ -21,6 +21,6 @@ public class QuitCommand extends AbstractSmtpCommand {
 
     @Override
     public SmtpCommandType getCommandType() {
-        return SmtpCommandType.QUIT;
+        return SmtpRFCSupportedCommandType.QUIT;
     }
 }
