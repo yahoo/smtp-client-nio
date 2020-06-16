@@ -65,7 +65,7 @@ public class HelloCommandTest {
      */
     @Test
     public void testGetCommandType() {
-        Assert.assertSame(new HelloCommand("John").getCommandType(), SmtpCommandType.HELO);
+        Assert.assertSame(new HelloCommand("John").getCommandType(), SmtpRFCSupportedCommandType.HELO);
     }
 
     /**

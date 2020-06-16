@@ -64,7 +64,7 @@ public class QuitCommandTest {
      */
     @Test
     public void testGetCommandType() {
-        Assert.assertSame(new QuitCommand().getCommandType(), SmtpCommandType.QUIT, "Incorrect command type");
+        Assert.assertSame(new QuitCommand().getCommandType(), SmtpRFCSupportedCommandType.QUIT, "Incorrect command type");
     }
 
     /**

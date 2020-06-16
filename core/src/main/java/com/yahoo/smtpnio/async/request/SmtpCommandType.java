@@ -4,17 +4,9 @@
  */
 package com.yahoo.smtpnio.async.request;
 
-/***
- * Enum used to identify the type of SMTP command that is sent.
+/**
+ * This interface identifies the type of SMTP command that is sent.
  */
-public enum SmtpCommandType {
+public interface SmtpCommandType {
 
-    /** The Extended Hello command (EHLO). */
-    EHLO,
-
-    /** The Hello command (HELO). */
-    HELO,
-
-    /** The Quit command (QUIT). */
-    QUIT
 }

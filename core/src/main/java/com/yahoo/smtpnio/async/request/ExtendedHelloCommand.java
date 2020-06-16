@@ -44,7 +44,7 @@ public class ExtendedHelloCommand extends AbstractSmtpCommand {
 
     @Override
     public SmtpCommandType getCommandType() {
-        return SmtpCommandType.EHLO;
+        return SmtpRFCSupportedCommandType.EHLO;
     }
 
     @Override
