@@ -96,9 +96,17 @@ public class AuthenticationLoginCommandTest {
                     "Wrong SmtpAsyncClientException type");
         }
 
-        // Exception should be catched if server response is 4xx/5xx
+        // Exception should be catched if server response is 5xx
         try {
             cmd.getNextCommandLineAfterContinuation(new SmtpResponse("504 Unrecognized authentication type"));
+            Assert.fail("Exception not catched if server response is 5xx");
+        } catch (SmtpAsyncClientException e) {
+            Assert.assertEquals(e.getFailureType(), SmtpAsyncClientException.FailureType.COMMAND_NOT_ALLOWED, "Wrong SmtpAsyncClientException type");
+        }
+
+        // Exception should be catched if server response is 4xx
+        try {
+            cmd.getNextCommandLineAfterContinuation(new SmtpResponse("455  Server unable to accommodate parameters\n"));
             Assert.fail("Exception not catched if server response is 5xx");
         } catch (SmtpAsyncClientException e) {
             Assert.assertEquals(e.getFailureType(),
@@ -150,15 +158,12 @@ public class AuthenticationLoginCommandTest {
         Assert.assertEquals(cmd.getDebugData(), "<password>\r\n", "Wrong debug data");
 
         // Extra prompts
-        for (int i = 0; i < 4; i++) {
-            try {
-                cmd.getNextCommandLineAfterContinuation(new SmtpResponse("334 Extra stuff"));
-                Assert.fail("Exception not catched after server ask for more data");
-            } catch (SmtpAsyncClientException e) {
-                Assert.assertEquals(e.getFailureType(),
-                        SmtpAsyncClientException.FailureType.MORE_INPUT_THAN_EXPECTED,
-                        "Wrong SmtpAsyncClientException type");
-            }
+        try {
+            cmd.getNextCommandLineAfterContinuation(new SmtpResponse("334 Extra stuff"));
+            Assert.fail("Exception not catched after server ask for more data");
+        } catch (SmtpAsyncClientException e) {
+            Assert.assertEquals(e.getFailureType(), SmtpAsyncClientException.FailureType.MORE_INPUT_THAN_EXPECTED,
+                    "Wrong SmtpAsyncClientException type");
         }
     }
 }

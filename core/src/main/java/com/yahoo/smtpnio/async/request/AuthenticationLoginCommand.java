@@ -82,7 +82,7 @@ public class AuthenticationLoginCommand extends AbstractAuthenticationCommand {
                 || serverResponse.getReplyType() == SmtpResponse.ReplyType.NEGATIVE_PERMANENT) {
             throw new SmtpAsyncClientException(
                     SmtpAsyncClientException.FailureType.COMMAND_NOT_ALLOWED,
-                    "server replies an error: " + serverResponse);
+                    new StringBuilder("server replies an error: ").append(serverResponse).toString());
         }
         final String input;
         if (nextInputState == InputState.USERNAME) {
@@ -112,14 +112,11 @@ public class AuthenticationLoginCommand extends AbstractAuthenticationCommand {
     @Override
     public String getDebugData() {
         if (this.nextInputState == InputState.USERNAME) {
-            return AUTH + SmtpClientConstants.SPACE + mechanism + SmtpClientConstants.CRLF;
+            return new StringBuilder(AUTH).append(SmtpClientConstants.SPACE).append(mechanism).append(SmtpClientConstants.CRLF).toString();
         }
         if (this.nextInputState == InputState.PASSWORD) {
-            return LOG_USERNAME_PLACEHOLDER + SmtpClientConstants.CRLF;
+            return new StringBuilder(LOG_USERNAME_PLACEHOLDER).append(SmtpClientConstants.CRLF).toString();
         }
-        if (this.nextInputState == InputState.COMPLETED) {
-            return LOG_PASSWORD_PLACEHOLDER + SmtpClientConstants.CRLF;
-        }
-        return SmtpClientConstants.CRLF;
+        return new StringBuilder(LOG_PASSWORD_PLACEHOLDER).append(SmtpClientConstants.CRLF).toString();
     }
 }

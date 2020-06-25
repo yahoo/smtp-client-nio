@@ -7,6 +7,7 @@ package com.yahoo.smtpnio.async.request;
 import java.nio.charset.StandardCharsets;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.commons.codec.binary.Base64;
 
@@ -27,23 +28,6 @@ public class AuthenticationPlainCommand extends AbstractAuthenticationCommand {
     /** Number of spaces used. */
     private static final int NUM_SPACE = 4;
 
-
-    /** String in place of the actual secret in the debugging data. */
-    private static final String LOG_SECRET_PLACEHOLDER = "<secret>";
-
-    /** Authentication secret. */
-    private byte[] secret;
-
-    /**
-     * Initializes an AUTH command to authenticate via plaintext.
-     *
-     * @param secret base64 encoded authentication secret as a byte array
-     */
-    private AuthenticationPlainCommand(@Nonnull final byte[] secret) {
-        super(PLAIN);
-        this.secret = secret;
-    }
-
     /**
      * Initializes an AUTH command to authenticate via plaintext. This constructor will encode the authzid, username and password into base64.
      *
@@ -51,11 +35,14 @@ public class AuthenticationPlainCommand extends AbstractAuthenticationCommand {
      * @param username username/authentication identity of the intended sender, usually an email address, in clear text (aka. authcid)
      * @param password password associated with the above username, in clear text
      */
-    public AuthenticationPlainCommand(final String authorizationIdentity, @Nonnull final String username, @Nonnull final String password) {
+    public AuthenticationPlainCommand(@Nullable final String authorizationIdentity, @Nonnull final String username, @Nonnull final String password) {
         super(Mechanism.PLAIN);
-        final String authzid = authorizationIdentity == null ? "" : authorizationIdentity;
-        this.secret = Base64.encodeBase64((authzid + SmtpClientConstants.NULL + username + SmtpClientConstants.NULL + password)
-                .getBytes(StandardCharsets.US_ASCII));
+        final StringBuilder authzidBuilder = new StringBuilder();
+        if (authorizationIdentity != null) {
+            authzidBuilder.append(authorizationIdentity);
+        }
+        this.secret = Base64.encodeBase64(authzidBuilder.append(SmtpClientConstants.NULL).append(username).append(SmtpClientConstants.NULL)
+                .append(password).toString().getBytes(StandardCharsets.US_ASCII));
     }
 
     @Nonnull

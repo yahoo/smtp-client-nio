@@ -19,13 +19,11 @@ enum SmtpRFCSupportedCommandType implements SmtpCommandType {
     QUIT,
 
     /** The Authentication command (AUTH). */
-    AUTH,
-
-    /** The Starttls command (STARTTLS). */
-    STARTTLS;
+    AUTH;
 
     @Override
     public String getType() {
         return this.name();
     }
 }
+

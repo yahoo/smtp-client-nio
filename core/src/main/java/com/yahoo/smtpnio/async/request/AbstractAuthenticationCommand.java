@@ -16,7 +16,6 @@ public abstract class AbstractAuthenticationCommand extends AbstractSmtpCommand 
     /** String literal for "AUTH". */
     protected static final String AUTH = "AUTH";
 
-
     /** Byte array for "AUTH". */
     protected static final byte[] AUTH_B = AUTH.getBytes(StandardCharsets.US_ASCII);
 
@@ -43,7 +42,7 @@ public abstract class AbstractAuthenticationCommand extends AbstractSmtpCommand 
      */
     protected AbstractAuthenticationCommand(@Nonnull final Mechanism mechanism) {
         super(AUTH);
-        this.mechanism = mechanism.toString();
+        this.mechanism = mechanism.name();
     }
 
     /**

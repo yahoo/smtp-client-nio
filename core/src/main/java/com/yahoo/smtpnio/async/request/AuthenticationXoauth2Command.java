@@ -20,9 +20,6 @@ import io.netty.buffer.Unpooled;
  */
 public class AuthenticationXoauth2Command extends AbstractAuthenticationCommand {
 
-    /** String literal for "XOAUTH2". **/
-    private static final String XOAUTH2 = "XOAUTH2";
-
     /** String literal for "use=", part of required syntax for the command. **/
     private static final String USER_EQUAL = "user=";
 
@@ -65,11 +62,9 @@ public class AuthenticationXoauth2Command extends AbstractAuthenticationCommand 
                 .append(USER_EQUAL).append(username).append(SmtpClientConstants.SOH)
                 .append(AUTH_BEARER).append(token).append(SmtpClientConstants.SOH).append(SmtpClientConstants.SOH)
                 .toString();
-        return Unpooled.buffer(AUTH_B.length + XOAUTH2.length() + commandStr.length() + SmtpClientConstants.PADDING_LEN)
-                .writeBytes(AUTH_B).writeByte(SmtpClientConstants.SPACE)
-                .writeBytes(XOAUTH2.getBytes(StandardCharsets.US_ASCII)).writeByte(SmtpClientConstants.SPACE)
-                .writeBytes(Base64.encodeBase64(commandStr.getBytes(StandardCharsets.UTF_8)))
-                .writeBytes(CRLF_B);
+        return Unpooled.buffer(AUTH_B.length + getMechanism().length() + commandStr.length() + SmtpClientConstants.PADDING_LEN).writeBytes(AUTH_B)
+                .writeByte(SmtpClientConstants.SPACE).writeBytes(getMechanism().getBytes(StandardCharsets.US_ASCII))
+                .writeByte(SmtpClientConstants.SPACE).writeBytes(Base64.encodeBase64(commandStr.getBytes(StandardCharsets.UTF_8))).writeBytes(CRLF_B);
     }
 
     /**
