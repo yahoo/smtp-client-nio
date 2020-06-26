@@ -148,15 +148,7 @@ smtpClient.shutdown();
 This release, version 1.0.3, supports the following SMTP commands:
 - **EHLO**
 - **HELO**
-<<<<<<< HEAD
-<<<<<<< HEAD
 - **AUTH** (PLAIN, LOGIN, XOAUTH2)
-=======
-- **AUTH** (PLAIN, LOGIN)
->>>>>>> 81a62c3... Revising the AUTH architecture + PR revision
-=======
-- **AUTH** (PLAIN, LOGIN, XOAUTH2)
->>>>>>> 0142318... Adding XOAUTH2 support
 - **QUIT**
 
 ## Contribute
