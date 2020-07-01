@@ -771,7 +771,6 @@ public class SmtpAsyncClientTest {
         Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 0, "Unexpected count of ChannelHandler added.");
 
         // verify logging messages
-        // verify logging messages
         Mockito.verify(logger, Mockito.times(1)).error(
                 Mockito.eq("[{},{}] connect operation complete. result={}, host={}, port={}, sslEnabled={}, sniNames={}"), Mockito.eq("N/A"),
                 Mockito.eq("N/A"), Mockito.eq("failure"), Mockito.eq("smtp.foo.com"), Mockito.eq(993), Mockito.eq(true),
@@ -794,8 +793,6 @@ public class SmtpAsyncClientTest {
         Assert.assertEquals(actual.getCause().getClass(), ConnectTimeoutException.class, "Cause should be connection timeout exception");
         Assert.assertSame(actual.getCause(), nettyConnectFuture.cause(), "Cause should be same object");
         Assert.assertEquals(actual.getFailureType(), FailureType.WRITE_TO_SERVER_FAILED, "Exception type should be CONNECTION_TIMEOUT_EXCEPTION");
-
-
     }
 
     /**

@@ -260,8 +260,6 @@ public class SmtpClientConnectHandlerTest {
         handler.channelInactive(ctx);
     }
 
-
-
     /**
      * Tests {@code userEventTriggered} method and the event is {@link IdleStateEvent}, state is NOT {@code READ_IDLE}.
      *
