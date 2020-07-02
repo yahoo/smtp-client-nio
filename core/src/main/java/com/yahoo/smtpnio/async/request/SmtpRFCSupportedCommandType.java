@@ -16,5 +16,14 @@ enum SmtpRFCSupportedCommandType implements SmtpCommandType {
     HELO,
 
     /** The Quit command (QUIT). */
-    QUIT
+    QUIT,
+
+    /** The Authentication command (AUTH). */
+    AUTH;
+
+    @Override
+    public String getType() {
+        return this.name();
+    }
 }
+

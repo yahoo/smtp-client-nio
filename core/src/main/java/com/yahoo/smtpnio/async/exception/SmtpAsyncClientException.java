@@ -57,7 +57,10 @@ public class SmtpAsyncClientException extends Exception {
         INVALID_INPUT("Input is invalid."),
 
         /** Invalid Server Response. */
-        INVALID_SERVER_RESPONSE("The server response is invalid.");
+        INVALID_SERVER_RESPONSE("The server response is invalid."),
+
+        /** Server asks for more input. An example is the extra prompt after username and password in AUTH LOGIN */
+        MORE_INPUT_THAN_EXPECTED("The server ask for more input than expected");
 
         /**
          * Constructor to add an error message for failure type belonging to this enum.
