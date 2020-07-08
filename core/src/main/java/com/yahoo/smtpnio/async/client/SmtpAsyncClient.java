@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongUnaryOperator;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLEngine;
@@ -133,6 +134,7 @@ public class SmtpAsyncClient {
                             future.cause());
                     sessionFuture.done(ex);
                     logger.error(CONNECT_RESULT_REC, "N/A", sessionCtx, "failure", host, port, enableSsl, sniNames, ex);
+                    closeChannel(nettyConnectFuture.channel());
                     return;
                 }
                 // add the session specific handlers
@@ -171,6 +173,17 @@ public class SmtpAsyncClient {
             }
         });
         return sessionFuture;
+    }
+
+    /**
+     * Closes channel.
+     *
+     * @param channel the channel
+     */
+    private void closeChannel(@Nullable final Channel channel) {
+        if (channel != null && channel.isActive()) {
+            channel.close();
+        }
     }
 
     /**

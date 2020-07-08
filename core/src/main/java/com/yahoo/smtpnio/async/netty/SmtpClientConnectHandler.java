@@ -66,6 +66,18 @@ public class SmtpClientConnectHandler extends MessageToMessageDecoder<SmtpRespon
         this.sessionCtx = sessionCtx;
     }
 
+    /**
+     * Closes the connection.
+     *
+     * @param ctx the ChannelHandlerContext
+     */
+    private void close(final ChannelHandlerContext ctx) {
+        if (ctx.channel().isActive()) {
+            // closing the channel if server is still active
+            ctx.close();
+        }
+    }
+
     @Override
     public void decode(@Nonnull final ChannelHandlerContext ctx, @Nonnull final SmtpResponse serverResponse, @Nonnull final List<Object> out) {
         final ChannelPipeline pipeline = ctx.pipeline();
@@ -82,6 +94,7 @@ public class SmtpClientConnectHandler extends MessageToMessageDecoder<SmtpRespon
             logger.error("[{},{}] Server response was not successful:{}", sessionId, sessionCtx, serverResponse.toString());
             sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_INVALID_GREETING_CODE, sessionId, sessionCtx,
                     serverResponse.toString()));
+            close(ctx); // closing the channel if we r not getting a ok greeting
         }
         cleanup();
     }
@@ -90,6 +103,7 @@ public class SmtpClientConnectHandler extends MessageToMessageDecoder<SmtpRespon
     public void exceptionCaught(@Nonnull final ChannelHandlerContext ctx, @Nonnull final Throwable cause) {
         logger.error("[{},{}] Connection failed due to encountering exception:{}.", sessionId, sessionCtx, cause);
         sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEPTION, cause, sessionId, sessionCtx));
+        close(ctx); // closing the connection
     }
 
     @Override
@@ -100,7 +114,7 @@ public class SmtpClientConnectHandler extends MessageToMessageDecoder<SmtpRespon
                 logger.error("[{},{}] Connection failed due to taking longer than configured allowed time.", sessionId, sessionCtx);
                 sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEED_IDLE_MAX, sessionId, sessionCtx));
                 // closing the channel if server is not responding for max read timeout limit
-                ctx.close();
+                close(ctx);
             }
         }
     }

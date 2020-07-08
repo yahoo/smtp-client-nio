@@ -9,7 +9,9 @@ import java.net.SocketAddress;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.net.ssl.SSLException;
@@ -22,6 +24,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
+import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
 import com.yahoo.smtpnio.async.netty.SmtpClientConnectHandler;
 import com.yahoo.smtpnio.client.SmtpClientRespReader;
 import com.yahoo.smtpnio.command.SmtpClientRespDecoder;
@@ -31,6 +34,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelPipeline;
+import io.netty.channel.ConnectTimeoutException;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.string.StringDecoder;
@@ -447,6 +451,7 @@ public class SmtpAsyncClientTest {
         Mockito.when(nettyChannel.pipeline()).thenReturn(nettyPipeline);
         Mockito.when(nettyConnectFuture.channel()).thenReturn(nettyChannel);
         Mockito.when(bootstrap.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(nettyConnectFuture);
+        Mockito.when(nettyChannel.isActive()).thenReturn(true);
         Mockito.when(logger.isTraceEnabled()).thenReturn(true);
 
         final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
@@ -510,6 +515,8 @@ public class SmtpAsyncClientTest {
                         Mockito.eq(null),
                         Mockito.isA(SmtpAsyncClientException.class)
                 );
+        Mockito.verify(nettyChannel, Mockito.times(1)).isActive();
+        Mockito.verify(nettyChannel, Mockito.times(1)).close();
     }
 
     /**
@@ -527,6 +534,7 @@ public class SmtpAsyncClientTest {
         final ChannelPipeline nettyPipeline = Mockito.mock(ChannelPipeline.class);
 
         Mockito.when(nettyConnectFuture.isSuccess()).thenReturn(false);
+        Mockito.when(nettyChannel.isActive()).thenReturn(false);
         Mockito.when(nettyChannel.pipeline()).thenReturn(nettyPipeline);
         Mockito.when(nettyConnectFuture.channel()).thenReturn(nettyChannel);
         Mockito.when(bootstrap.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(nettyConnectFuture);
@@ -594,6 +602,8 @@ public class SmtpAsyncClientTest {
                         Mockito.eq(null),
                         Mockito.isA(SmtpAsyncClientException.class)
                 );
+        Mockito.verify(nettyChannel, Mockito.times(1)).isActive();
+        Mockito.verify(nettyChannel, Mockito.times(0)).close(); // since channel is not active
     }
 
     /**
@@ -699,6 +709,90 @@ public class SmtpAsyncClientTest {
         // Next ID should be the max value of Long
         Assert.assertEquals(((AtomicLong) Whitebox.getInternalState(client, "sessionCount")).get(),
                 Long.MAX_VALUE, "The session ID did not wrap around properly");
+    }
+
+    /**
+     * Tests createSession method with failure when channel is null.
+     *
+     * @throws SSLException will not throw
+     * @throws URISyntaxException will not throw
+     * @throws Exception when calling operationComplete() at GenericFutureListener
+     */
+    @Test
+    public void testCreateSessionConnectionFailedChannelIsNull() throws SSLException, URISyntaxException, Exception {
+        final Bootstrap bootstrap = Mockito.mock(Bootstrap.class);
+        final ChannelFuture nettyConnectFuture = Mockito.mock(ChannelFuture.class);
+        Mockito.when(nettyConnectFuture.isSuccess()).thenReturn(false);
+
+        final ChannelPipeline nettyPipeline = Mockito.mock(ChannelPipeline.class);
+
+        Mockito.when(nettyConnectFuture.cause()).thenReturn(new ConnectTimeoutException("connection timed out"));
+        Mockito.when(bootstrap.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(nettyConnectFuture);
+
+        final EventLoopGroup group = Mockito.mock(EventLoopGroup.class);
+        final Logger logger = Mockito.mock(Logger.class);
+        Mockito.when(logger.isDebugEnabled()).thenReturn(true);
+
+        final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
+        final SmtpAsyncSessionConfig config = new SmtpAsyncSessionConfig();
+        config.setConnectionTimeout(5000);
+        config.setReadTimeout(6000);
+
+        // test create session
+        final Future<SmtpAsyncCreateSessionResponse> future = client.createSession(
+                SmtpAsyncSessionData.newBuilder("smtp.foo.com", 993, true).setSessionContext("N/A").setSniNames(Collections.emptyList()).build(),
+                new SmtpAsyncSessionConfig(), SmtpAsyncSession.DebugMode.DEBUG_ON); // verify session creation
+
+        Assert.assertNotNull(future, "Future for SmtpAsyncSession should not be null.");
+        final ArgumentCaptor<SmtpClientChannelInitializer> initializerCaptor = ArgumentCaptor.forClass(SmtpClientChannelInitializer.class);
+
+        Mockito.verify(bootstrap, Mockito.times(1)).handler(initializerCaptor.capture());
+        Assert.assertEquals(initializerCaptor.getAllValues().size(), 1, "Unexpected count of SmtpClientChannelInitializer.");
+        final SmtpClientChannelInitializer initializer = initializerCaptor.getAllValues().get(0);
+
+        // should not call this connect
+        Mockito.verify(bootstrap, Mockito.times(0)).connect(Mockito.any(SocketAddress.class), Mockito.any(SocketAddress.class));
+        // should call following connect
+        Mockito.verify(bootstrap, Mockito.times(1)).connect(Mockito.anyString(), Mockito.anyInt());
+
+        final ArgumentCaptor<GenericFutureListener> listenerCaptor = ArgumentCaptor.forClass(GenericFutureListener.class);
+        Mockito.verify(nettyConnectFuture, Mockito.times(1)).addListener(listenerCaptor.capture());
+        Assert.assertEquals(listenerCaptor.getAllValues().size(), 1, "Unexpected count of SmtpClientChannelInitializer.");
+
+        // verify GenericFutureListener.operationComplete()
+        final GenericFutureListener listener = listenerCaptor.getAllValues().get(0);
+        listener.operationComplete(nettyConnectFuture);
+        final ArgumentCaptor<ChannelHandler> handlerCaptorFirst = ArgumentCaptor.forClass(ChannelHandler.class);
+
+        Mockito.verify(nettyPipeline, Mockito.times(0)).addFirst(Mockito.anyString(), handlerCaptorFirst.capture());
+        Assert.assertEquals(handlerCaptorFirst.getAllValues().size(), 0, "number of handlers mismatched.");
+        final ArgumentCaptor<ChannelHandler> handlerCaptorLast = ArgumentCaptor.forClass(ChannelHandler.class);
+        Mockito.verify(nettyPipeline, Mockito.times(0)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
+        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 0, "Unexpected count of ChannelHandler added.");
+
+        // verify logging messages
+        Mockito.verify(logger, Mockito.times(1)).error(
+                Mockito.eq("[{},{}] connect operation complete. result={}, host={}, port={}, sslEnabled={}, sniNames={}"), Mockito.eq("N/A"),
+                Mockito.eq("N/A"), Mockito.eq("failure"), Mockito.eq("smtp.foo.com"), Mockito.eq(993), Mockito.eq(true),
+                Mockito.eq(Collections.emptyList()), Mockito.isA(SmtpAsyncClientException.class));
+        Assert.assertTrue(future.isDone(), "Future should be done.");
+        SmtpAsyncClientException actual = null;
+        try {
+            future.get(5, TimeUnit.SECONDS);
+            Assert.fail("Should throw connect timeout exception");
+        } catch (final ExecutionException | InterruptedException ex) {
+            Assert.assertNotNull(ex, "Expect exception to be thrown.");
+            Assert.assertNotNull(ex.getCause(), "Expect cause.");
+            Assert.assertEquals(ex.getClass(), ExecutionException.class, "Class type mismatch.");
+            final Exception exception = (Exception) ex.getCause();
+            Assert.assertEquals(exception.getClass(), SmtpAsyncClientException.class, "exception type mismatch." + ex);
+            actual = (SmtpAsyncClientException) exception;
+        }
+
+        Assert.assertNotNull(actual.getCause(), "Cause should not be null");
+        Assert.assertEquals(actual.getCause().getClass(), ConnectTimeoutException.class, "Cause should be connection timeout exception");
+        Assert.assertSame(actual.getCause(), nettyConnectFuture.cause(), "Cause should be same object");
+        Assert.assertEquals(actual.getFailureType(), FailureType.WRITE_TO_SERVER_FAILED, "Exception type should be CONNECTION_TIMEOUT_EXCEPTION");
     }
 
     /**

@@ -27,6 +27,7 @@ import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
 import com.yahoo.smtpnio.async.response.SmtpResponse;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.timeout.IdleState;
@@ -111,6 +112,9 @@ public class SmtpClientConnectHandlerTest {
         final ChannelHandlerContext ctx = Mockito.mock(ChannelHandlerContext.class);
         final ChannelPipeline pipeline = Mockito.mock(ChannelPipeline.class);
         Mockito.when(ctx.pipeline()).thenReturn(pipeline);
+        final Channel channel = Mockito.mock(Channel.class);
+        Mockito.when(channel.isActive()).thenReturn(true);
+        Mockito.when(ctx.channel()).thenReturn(channel);
 
         final String msg = "504 some error response";
         final SmtpResponse resp = new SmtpResponse(msg);
@@ -131,6 +135,8 @@ public class SmtpClientConnectHandlerTest {
         Assert.assertNotNull(ex, "Expect exception to be thrown.");
         Assert.assertNotNull(ex.getCause(), "Expect cause.");
         Assert.assertEquals(ex.getCause().getClass(), SmtpAsyncClientException.class, "Expected result mismatched.");
+        Mockito.verify(ctx, Mockito.times(1)).close();
+        Mockito.verify(channel, Mockito.times(1)).isActive();
     }
 
     /**
@@ -149,6 +155,10 @@ public class SmtpClientConnectHandlerTest {
         final SmtpClientConnectHandler handler = new SmtpClientConnectHandler(smtpFuture, logger, DebugMode.DEBUG_ON, SESSION_ID, sessCtx);
 
         final ChannelHandlerContext ctx = Mockito.mock(ChannelHandlerContext.class);
+        final Channel channel = Mockito.mock(Channel.class);
+        Mockito.when(channel.isActive()).thenReturn(true);
+        Mockito.when(ctx.channel()).thenReturn(channel);
+
         final TimeoutException timeoutEx = new TimeoutException("too late, my friend");
         handler.exceptionCaught(ctx, timeoutEx);
 
@@ -162,6 +172,46 @@ public class SmtpClientConnectHandlerTest {
         Assert.assertNotNull(ex, "Expect exception to be thrown.");
         Assert.assertNotNull(ex.getCause(), "Expect cause.");
         Assert.assertEquals(ex.getCause().getClass(), SmtpAsyncClientException.class, "Expected result mismatched.");
+
+        Mockito.verify(ctx, Mockito.times(1)).close();
+        Mockito.verify(channel, Mockito.times(1)).isActive();
+    }
+
+    /**
+     * Tests exceptionCaught method.
+     *
+     * @throws IllegalArgumentException will not throw
+     * @throws InterruptedException will not throw
+     * @throws TimeoutException will not throw
+     */
+    @Test
+    public void testExceptionCaughtChannelWasClosedAlready() throws IllegalArgumentException, InterruptedException, TimeoutException {
+        final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<SmtpAsyncCreateSessionResponse>();
+        final Logger logger = Mockito.mock(Logger.class);
+
+        final String sessCtx = "Titanosauria@long.neck";
+        final SmtpClientConnectHandler handler = new SmtpClientConnectHandler(smtpFuture, logger, DebugMode.DEBUG_ON, SESSION_ID, sessCtx);
+
+        final ChannelHandlerContext ctx = Mockito.mock(ChannelHandlerContext.class);
+        final Channel channel = Mockito.mock(Channel.class);
+        Mockito.when(channel.isActive()).thenReturn(false); // return false to reflect channel closed
+        Mockito.when(ctx.channel()).thenReturn(channel);
+
+        final TimeoutException timeoutEx = new TimeoutException("too late, my friend");
+        handler.exceptionCaught(ctx, timeoutEx);
+
+        Assert.assertTrue(smtpFuture.isDone(), "Future should be done");
+        ExecutionException ex = null;
+        try {
+            smtpFuture.get(5, TimeUnit.MILLISECONDS);
+        } catch (final ExecutionException ee) {
+            ex = ee;
+        }
+        Assert.assertNotNull(ex, "Expect exception to be thrown.");
+        Assert.assertNotNull(ex.getCause(), "Expect cause.");
+        Assert.assertEquals(ex.getCause().getClass(), SmtpAsyncClientException.class, "Expected result mismatched.");
+        Mockito.verify(ctx, Mockito.times(0)).close(); // should not close since channel is already closed
+        Mockito.verify(channel, Mockito.times(1)).isActive();
     }
 
     /**
@@ -180,6 +230,9 @@ public class SmtpClientConnectHandlerTest {
         final SmtpClientConnectHandler handler = new SmtpClientConnectHandler(smtpFuture, logger, DebugMode.DEBUG_ON, SESSION_ID, sessCtx);
 
         final ChannelHandlerContext ctx = Mockito.mock(ChannelHandlerContext.class);
+        final Channel channel = Mockito.mock(Channel.class);
+        Mockito.when(channel.isActive()).thenReturn(true);
+        Mockito.when(ctx.channel()).thenReturn(channel);
         final IdleStateEvent idleEvent = Mockito.mock(IdleStateEvent.class);
         Mockito.when(idleEvent.state()).thenReturn(IdleState.READER_IDLE);
         handler.userEventTriggered(ctx, idleEvent);
@@ -199,6 +252,9 @@ public class SmtpClientConnectHandlerTest {
         Assert.assertEquals(cause.getClass(), SmtpAsyncClientException.class, "Expected result mismatched.");
         final SmtpAsyncClientException aEx = (SmtpAsyncClientException) cause;
         Assert.assertEquals(aEx.getFailureType(), FailureType.CONNECTION_FAILED_EXCEED_IDLE_MAX, "Failure type mismatched");
+
+        Mockito.verify(ctx, Mockito.times(1)).close();
+        Mockito.verify(channel, Mockito.times(1)).isActive();
 
         // call channelInactive, should not encounter npe
         handler.channelInactive(ctx);
