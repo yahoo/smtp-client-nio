@@ -4,20 +4,15 @@
  */
 package com.yahoo.smtpnio.async.netty;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.net.ssl.SNIHostName;
-import javax.net.ssl.SNIServerName;
-import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLParameters;
 
 import org.slf4j.Logger;
 
+import com.yahoo.smtpnio.async.client.SmtpAsyncClient;
 import com.yahoo.smtpnio.async.client.SmtpAsyncCreateSessionResponse;
 import com.yahoo.smtpnio.async.client.SmtpAsyncSession;
 import com.yahoo.smtpnio.async.client.SmtpAsyncSession.DebugMode;
@@ -28,13 +23,11 @@ import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
 import com.yahoo.smtpnio.async.internal.SmtpAsyncSessionImpl;
 import com.yahoo.smtpnio.async.response.SmtpResponse;
 
-import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 
@@ -98,7 +91,9 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
             final SmtpAsyncCreateSessionResponse response = new SmtpAsyncCreateSessionResponse(session, serverResponse);
             try {
                 // add sslHandler
-                ctx.pipeline().addFirst(newSslHandler(ctx.alloc(), sessionData.getHost(), sessionData.getPort(), sessionData.getSniNames()));
+                SslContext sslContext = SslContextBuilder.forClient().build();
+                ctx.pipeline().addFirst(SmtpAsyncClient.newSslHandler(sslContext, ctx.alloc(), sessionData.getHost(), sessionData.getPort(),
+                        sessionData.getSniNames()));
                 if (logger.isTraceEnabled() || logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
                     logger.debug("[{},{}] Starttls was successful. Connection is now encrypted. ", sessionId, sessionCtx);
                 }
@@ -169,32 +164,6 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
         logOpt = null;
         sessionCtx = null;
         sessionData = null;
-    }
-
-    /**
-     * Create a new SslHanlder for decryption/encryption.
-     *
-     * @param alloc Allocator for ByteBuf objects
-     * @param host host name of server
-     * @param port port of server
-     * @param sniNames collection of SNI names
-     * @return an SslHandler to process ssl connection
-     * @throws SSLException when failed to create {@link SslContext}}
-     */
-    private SslHandler newSslHandler(@Nonnull final ByteBufAllocator alloc, @Nullable final String host, final int port,
-            @Nullable final Collection<String> sniNames) throws SSLException {
-        final SslContext sslContext = SslContextBuilder.forClient().build();
-        final SSLEngine engine = sslContext.newEngine(alloc, host, port);
-        if (sniNames != null && !sniNames.isEmpty()) { // SNI support
-            final List<SNIServerName> serverNames = new ArrayList<>();
-            for (final String sni : sniNames) {
-                serverNames.add(new SNIHostName(sni));
-            }
-            final SSLParameters params = new SSLParameters();
-            params.setServerNames(serverNames);
-            engine.setSSLParameters(params);
-        }
-        return new SslHandler(engine);
     }
 
 }

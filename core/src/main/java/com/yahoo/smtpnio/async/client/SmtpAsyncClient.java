@@ -29,6 +29,7 @@ import com.yahoo.smtpnio.async.netty.PlainGreetingHandler;
 import com.yahoo.smtpnio.async.netty.SmtpClientConnectHandler;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
@@ -185,19 +186,7 @@ public class SmtpAsyncClient {
                 // add the session specific handlers
                 if (!isReconnecting && enableSsl) {
                     // add sslHandler for initial ssl connection
-                    if (sniNames != null && !sniNames.isEmpty()) { // SNI support
-                        final List<SNIServerName> serverNames = new ArrayList<>();
-                        for (final String sni : sniNames) {
-                            serverNames.add(new SNIHostName(sni));
-                        }
-                        final SSLParameters params = new SSLParameters();
-                        params.setServerNames(serverNames);
-                        final SSLEngine engine = sslContext.newEngine(ch.alloc(), host, port);
-                        engine.setSSLParameters(params);
-                        pipeline.addFirst(SSL_HANDLER, new SslHandler(engine)); // in / outbound
-                    } else {
-                        pipeline.addFirst(SSL_HANDLER, sslContext.newHandler(ch.alloc(), host, port));
-                    }
+                    pipeline.addFirst(SSL_HANDLER, newSslHandler(sslContext, ch.alloc(), host, port, sniNames));
                 } else if (isReconnecting) {
                     // add PlainGreetingHandler for reconnection to start starttls flow
                     pipeline.addLast(PlainGreetingHandler.HANDLER_NAME, new PlainGreetingHandler(sessionCreatedFuture,
@@ -214,6 +203,34 @@ public class SmtpAsyncClient {
                 }
             }
         });
+    }
+
+    /**
+     * Create a new {@link SslHanlder} for decryption/encryption.
+     *
+     * @param sslContext SslContext used to create SslHandler
+     * @param alloc Allocator for ByteBuf objects
+     * @param host host name of server
+     * @param port port of server
+     * @param sniNames collection of SNI namess
+     * @return an SslHandler to process ssl connection
+     */
+    public static SslHandler newSslHandler(@Nonnull final SslContext sslContext, @Nonnull final ByteBufAllocator alloc,
+            @Nullable final String host,
+            final int port, @Nullable final Collection<String> sniNames) {
+        if (sniNames != null && !sniNames.isEmpty()) { // SNI support
+            final List<SNIServerName> serverNames = new ArrayList<>();
+            for (final String sni : sniNames) {
+                serverNames.add(new SNIHostName(sni));
+            }
+            final SSLParameters params = new SSLParameters();
+            params.setServerNames(serverNames);
+            final SSLEngine engine = sslContext.newEngine(alloc, host, port);
+            engine.setSSLParameters(params);
+            return new SslHandler(engine);
+        } else {
+            return sslContext.newHandler(alloc, host, port);
+        }
     }
 
     /**
