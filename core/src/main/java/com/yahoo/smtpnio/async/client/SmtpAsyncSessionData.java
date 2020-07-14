@@ -25,6 +25,9 @@ public final class SmtpAsyncSessionData {
     /** Whether to use SSL or not. */
     private final boolean enableSsl;
 
+    /** Whether to use starttls or not if native smtps failed. */
+    private final boolean enableStarttls;
+
     /** Server Name Indication (SNI) list. */
     @Nullable
     private final Collection<String> sniNames;
@@ -52,6 +55,9 @@ public final class SmtpAsyncSessionData {
         /** Whether to use SSL or not. */
         private final boolean enableSsl;
 
+        /** Whether to use starttls or not if native smtps failed. */
+        private final boolean enableStarttls;
+
         /** Server Name Indication (SNI) list. */
         @Nullable
         private Collection<String> sniNames;
@@ -70,11 +76,13 @@ public final class SmtpAsyncSessionData {
          * @param host host name
          * @param port port number
          * @param enableSsl whether to use SSL or not
+         * @param enableStarttls whether to use Starttls or not
          */
-        private DataBuilder(@Nonnull final String host, final int port, final boolean enableSsl) {
+        private DataBuilder(@Nonnull final String host, final int port, final boolean enableSsl, final boolean enableStarttls) {
             this.host = host;
             this.port = port;
             this.enableSsl = enableSsl;
+            this.enableStarttls = enableStarttls;
         }
 
         /**
@@ -110,7 +118,7 @@ public final class SmtpAsyncSessionData {
          * @return an {@link SmtpAsyncSessionData} instance
          */
         public SmtpAsyncSessionData build() {
-            return new SmtpAsyncSessionData(host, port, enableSsl, sniNames, localAddress, sessionContext);
+            return new SmtpAsyncSessionData(host, port, enableSsl, enableStarttls, sniNames, localAddress, sessionContext);
         }
     }
 
@@ -120,10 +128,11 @@ public final class SmtpAsyncSessionData {
      * @param host host name
      * @param port port number
      * @param enableSsl whether if SSL is enabled
+     * @param enableStarttls whether to use Starttls or not
      * @return {@link DataBuilder} instance with the specified arguments
      */
-    public static DataBuilder newBuilder(@Nonnull final String host, final int port, final boolean enableSsl) {
-        return new DataBuilder(host, port, enableSsl);
+    public static DataBuilder newBuilder(@Nonnull final String host, final int port, final boolean enableSsl, final boolean enableStarttls) {
+        return new DataBuilder(host, port, enableSsl, enableStarttls);
     }
 
     /**
@@ -132,15 +141,17 @@ public final class SmtpAsyncSessionData {
      * @param host host name
      * @param port port number
      * @param enableSsl whether to use SSL or not
+     * @param enableStarttls whether to use Starttls or not
      * @param sniNames collection of SNI names
      * @param localAddress local address to be used
      * @param sessionCtx session context
      */
-    private SmtpAsyncSessionData(@Nonnull final String host, final int port, final boolean enableSsl, @Nullable final Collection<String> sniNames,
-                                 @Nullable final InetSocketAddress localAddress, @Nullable final Object sessionCtx) {
+    private SmtpAsyncSessionData(@Nonnull final String host, final int port, final boolean enableSsl, final boolean enableStarttls,
+            @Nullable final Collection<String> sniNames, @Nullable final InetSocketAddress localAddress, @Nullable final Object sessionCtx) {
         this.host = host;
         this.port = port;
         this.enableSsl = enableSsl;
+        this.enableStarttls = enableStarttls;
         this.sniNames = sniNames;
         this.localAddress = localAddress;
         this.sessionContext = sessionCtx;
@@ -166,6 +177,13 @@ public final class SmtpAsyncSessionData {
      */
     public boolean isSslEnabled() {
         return enableSsl;
+    }
+
+    /**
+     * @return whether if Starttls is enabled
+     */
+    public boolean isStarttlsEnabled() {
+        return enableStarttls;
     }
 
     /**

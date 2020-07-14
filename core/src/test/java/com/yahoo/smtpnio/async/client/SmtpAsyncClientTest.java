@@ -79,7 +79,8 @@ public class SmtpAsyncClientTest {
 
         final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
 
-        client.createSession(SmtpAsyncSessionData.newBuilder(null, 465, true).build(), new SmtpAsyncSessionConfig(),
+        client.createSession(SmtpAsyncSessionData.newBuilder(null, 465, true, true).build(),
+                new SmtpAsyncSessionConfig(),
                 SmtpAsyncSession.DebugMode.DEBUG_OFF);
     }
 
@@ -104,7 +105,8 @@ public class SmtpAsyncClientTest {
         Mockito.when(logger.isTraceEnabled()).thenReturn(false);
 
         final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
-        final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 993, true)
+        final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData
+                .newBuilder("smtp.one.two.three.com", 993, true, true)
                 .setSessionContext("myCtx")
                 .build();
 
@@ -197,7 +199,8 @@ public class SmtpAsyncClientTest {
 
         final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
         final Future<SmtpAsyncCreateSessionResponse> future = client.createSession(
-               SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 993, false).build(),
+                SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 993, false, false)
+                        .build(),
                 new SmtpAsyncSessionConfig(), SmtpAsyncSession.DebugMode.DEBUG_ON);
 
         Assert.assertNotNull(future, "The response future should not be null");
@@ -285,7 +288,8 @@ public class SmtpAsyncClientTest {
 
         final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
         final Future<SmtpAsyncCreateSessionResponse> future = client.createSession(
-               SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 993, true)
+                SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 993, true,
+                        true)
                         .setSessionContext("myCtx").build(), new SmtpAsyncSessionConfig(), SmtpAsyncSession.DebugMode.DEBUG_OFF);
 
         Assert.assertNotNull(future, "The response future should not be null");
@@ -376,7 +380,8 @@ public class SmtpAsyncClientTest {
 
         final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
         final Future<SmtpAsyncCreateSessionResponse> future = client.createSession(
-               SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 993, true)
+                SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 993, true,
+                        true)
                         .setSessionContext("myCtx").build(), new SmtpAsyncSessionConfig(), SmtpAsyncSession.DebugMode.DEBUG_OFF);
 
         Assert.assertNotNull(future, "The response future should not be null");
@@ -456,7 +461,8 @@ public class SmtpAsyncClientTest {
 
         final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
         final Future<SmtpAsyncCreateSessionResponse> future = client.createSession(
-               SmtpAsyncSessionData.newBuilder("smtp.test.example.com", 123, true)
+                SmtpAsyncSessionData.newBuilder("smtp.test.example.com", 123, true,
+                        true)
                         .setSessionContext("myCtxFail").build(), new SmtpAsyncSessionConfig(), SmtpAsyncSession.DebugMode.DEBUG_OFF);
 
         Assert.assertNotNull(future, "The response future should not be null");
@@ -542,7 +548,8 @@ public class SmtpAsyncClientTest {
 
         final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
         final Future<SmtpAsyncCreateSessionResponse> future = client.createSession(
-               SmtpAsyncSessionData.newBuilder("smtp.test.example.com", 123, false)
+                SmtpAsyncSessionData.newBuilder("smtp.test.example.com", 123, false,
+                        false)
                         .setSessionContext("myCtxFail").build(), new SmtpAsyncSessionConfig(), SmtpAsyncSession.DebugMode.DEBUG_OFF);
 
         Assert.assertNotNull(future, "The response future should not be null");
@@ -640,7 +647,8 @@ public class SmtpAsyncClientTest {
 
         // test create session
         final Future<SmtpAsyncCreateSessionResponse> future = client.createSession(
-               SmtpAsyncSessionData.newBuilder("smtp.foo.com", 993, true)
+                SmtpAsyncSessionData.newBuilder("smtp.foo.com", 993, true,
+                        true)
                         .setSessionContext("N/A")
                         .setSniNames(Collections.emptyList())
                         .build(),
@@ -740,7 +748,8 @@ public class SmtpAsyncClientTest {
 
         // test create session
         final Future<SmtpAsyncCreateSessionResponse> future = client.createSession(
-                SmtpAsyncSessionData.newBuilder("smtp.foo.com", 993, true).setSessionContext("N/A").setSniNames(Collections.emptyList()).build(),
+                SmtpAsyncSessionData.newBuilder("smtp.foo.com", 993, true, true).setSessionContext("N/A").setSniNames(Collections.emptyList())
+                        .build(),
                 new SmtpAsyncSessionConfig(), SmtpAsyncSession.DebugMode.DEBUG_ON); // verify session creation
 
         Assert.assertNotNull(future, "Future for SmtpAsyncSession should not be null.");
@@ -827,7 +836,8 @@ public class SmtpAsyncClientTest {
         // test create session
         final InetSocketAddress localAddress = new InetSocketAddress("10.10.10.10", 23112);
         final Future<SmtpAsyncCreateSessionResponse> future = aclient.createSession(
-               SmtpAsyncSessionData.newBuilder("smtp.foo.com", 993, true)
+                SmtpAsyncSessionData.newBuilder("smtp.foo.com", 993, true,
+                        true)
                         .setSessionContext("someUserId")
                         .setSniNames(sniNames)
                         .setLocalAddress(localAddress)
@@ -930,7 +940,8 @@ public class SmtpAsyncClientTest {
         // test create session
         final InetSocketAddress localAddress = new InetSocketAddress("10.10.10.10", 23112);
         final Future<SmtpAsyncCreateSessionResponse> future = aclient.createSession(
-               SmtpAsyncSessionData.newBuilder("smtp.foo.com", 993, true)
+                SmtpAsyncSessionData.newBuilder("smtp.foo.com", 993, true,
+                        true)
                         .setSessionContext("user1")
                         .setSniNames(sniNames)
                         .setLocalAddress(localAddress)
