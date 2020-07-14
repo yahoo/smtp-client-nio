@@ -45,7 +45,7 @@ import io.netty.handler.timeout.IdleStateEvent;
 public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
 
     /** Literal for the name registered in pipeline. */
-    public static final String HANDLER_NAME = "SmtpClientConnectHandler";
+    public static final String HANDLER_NAME = "StarttlsHandler";
 
     /** Future for the created session. */
     private SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture;
@@ -96,18 +96,17 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
             // add the command response handler
             final SmtpAsyncSessionImpl session = new SmtpAsyncSessionImpl(ctx.channel(), logger, logOpt, sessionId, pipeline, sessionCtx);
             final SmtpAsyncCreateSessionResponse response = new SmtpAsyncCreateSessionResponse(session, serverResponse);
-            sessionCreatedFuture.done(response);
             try {
                 // add sslHandler
                 ctx.pipeline().addFirst(newSslHandler(ctx.alloc(), sessionData.getHost(), sessionData.getPort(), sessionData.getSniNames()));
+                if (logger.isTraceEnabled() || logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
+                    logger.debug("[{},{}] Starttls was successful. Connection is now encrypted. ", sessionId, sessionCtx);
+                }
+                sessionCreatedFuture.done(response);
             } catch (SSLException e) {
                 logger.error("[{},{}] Failed to create SslContext after receving STARTTLS response: {}", sessionId, sessionCtx, e);
-                sessionCreatedFuture
-                        .done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEPTION, e, sessionId, sessionCtx));
+                sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEPTION, e, sessionId, sessionCtx));
                 close(ctx);
-            }
-            if (logger.isTraceEnabled() || logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
-                logger.debug("[{},{}] Starttls was successful. Connection is now encrypted. ", sessionId, sessionCtx);
             }
         } else {
             logger.error("[{},{}] STARTTLS response was not successful:{}", sessionId, sessionCtx, serverResponse.toString());

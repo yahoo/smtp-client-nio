@@ -13,7 +13,7 @@ public class StarttlsCommand extends AbstractSmtpCommand {
     private static final String STARTTLS = "STARTTLS";
 
     /**
-     * Initializes a QUIT command object used to log out of the server.
+     * Initializes a STARTTLS command object used to log out of the server.
      */
     public StarttlsCommand() {
         super(STARTTLS);

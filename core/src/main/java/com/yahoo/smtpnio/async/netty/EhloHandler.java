@@ -34,7 +34,7 @@ import io.netty.handler.timeout.IdleStateEvent;
 public class EhloHandler extends MessageToMessageDecoder<SmtpResponse> {
 
     /** Literal for the name registered in pipeline. */
-    public static final String HANDLER_NAME = "SmtpClientConnectHandler";
+    public static final String HANDLER_NAME = "EhloHandler";
 
     /** Future for the created session. */
     private SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture;
@@ -80,12 +80,18 @@ public class EhloHandler extends MessageToMessageDecoder<SmtpResponse> {
         if (serverResponse.isLastLineResponse()) {
             Channel channel = ctx.channel();
             channel.writeAndFlush(new StarttlsCommand().getCommandLineBytes());
-            ctx.pipeline().replace(this, "starttlsHandler",
+            ctx.pipeline().replace(this, StarttlsHandler.HANDLER_NAME,
                     new StarttlsHandler(sessionCreatedFuture, logger, logOpt, sessionId, sessionCtx, sessionData));
             if (logger.isTraceEnabled() || logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
                 logger.debug("[{},{}] EHLO response after reconnection was successful. Trying to sent STARTTLS.", sessionId, sessionCtx);
             }
             cleanup();
+        } else if (serverResponse.getReplyType() != SmtpResponse.ReplyType.POSITIVE_COMPLETION) {
+            // receive a bad response, close the connection
+            logger.error("[{},{}] Receive bad response after sending EHLO: {}", sessionId, sessionCtx, serverResponse.toString());
+            sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEPTION, sessionId, sessionCtx));
+            cleanup();
+            close(ctx);
         }
     }
 
@@ -94,7 +100,7 @@ public class EhloHandler extends MessageToMessageDecoder<SmtpResponse> {
         logger.error("[{},{}] Re-connection failed due to encountering exception:{}.", sessionId, sessionCtx, cause);
         sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEPTION, cause, sessionId, sessionCtx));
         cleanup();
-        close(ctx); // closing the connection
+        close(ctx);
     }
 
     @Override

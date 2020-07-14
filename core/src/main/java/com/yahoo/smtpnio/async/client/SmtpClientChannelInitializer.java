@@ -21,6 +21,9 @@ import io.netty.handler.timeout.IdleStateHandler;
  */
 final class SmtpClientChannelInitializer extends ChannelInitializer<SocketChannel> {
 
+    /** Literal name for this initializer. */
+    static final String INITIALIZER = "initializer";
+
     /** Handler name for idle sate handler. */
     private static final String IDLE_STATE_HANDLER_NAME = "idleStateHandler";
 

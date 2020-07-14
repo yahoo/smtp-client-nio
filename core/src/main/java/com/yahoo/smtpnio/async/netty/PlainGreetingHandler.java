@@ -18,13 +18,11 @@ import com.yahoo.smtpnio.async.client.SmtpAsyncSessionData;
 import com.yahoo.smtpnio.async.client.SmtpFuture;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
-
 import com.yahoo.smtpnio.async.request.ExtendedHelloCommand;
 import com.yahoo.smtpnio.async.response.SmtpResponse;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
@@ -36,6 +34,9 @@ public class PlainGreetingHandler extends MessageToMessageDecoder<SmtpResponse> 
 
     /** Literal for the name registered in pipeline. */
     public static final String HANDLER_NAME = "PlainGreetingHandler";
+
+    /** Client name used for server to say greeting to. */
+    public static final String EHLO_CLIENT_NAME = "Reconnection";
 
     /** Future for the created session. */
     private SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture;
@@ -65,8 +66,9 @@ public class PlainGreetingHandler extends MessageToMessageDecoder<SmtpResponse> 
      * @param sessionCtx context for the session information; it is used used for logging
      * @param sessionData sessionData object containing information about the connection.
      */
-    public PlainGreetingHandler(@Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionFuture,
-            @Nonnull final Logger logger, @Nonnull final DebugMode logOpt, final long sessionId, @Nullable final Object sessionCtx,
+    public PlainGreetingHandler(@Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionFuture, @Nonnull final Logger logger,
+            @Nonnull final DebugMode logOpt, final long sessionId,
+            @Nullable final Object sessionCtx,
             @Nullable final SmtpAsyncSessionData sessionData) {
         this.sessionCreatedFuture = sessionFuture;
         this.logger = logger;
@@ -78,18 +80,13 @@ public class PlainGreetingHandler extends MessageToMessageDecoder<SmtpResponse> 
 
     @Override
     public void decode(@Nonnull final ChannelHandlerContext ctx, @Nonnull final SmtpResponse serverResponse, @Nonnull final List<Object> out) {
-        final ChannelPipeline pipeline = ctx.pipeline();
-        // this handler is solely used to detect connect greeting from server, job done, removing it
-        pipeline.remove(this);
-
         if (serverResponse.getCode().value() == SmtpResponse.Code.GREETING) { // successful response
             Channel channel = ctx.channel();
-            channel.writeAndFlush(new ExtendedHelloCommand("local").getCommandLineBytes());
-            ctx.pipeline().addLast(EhloHandler.HANDLER_NAME,
+            channel.writeAndFlush(new ExtendedHelloCommand(EHLO_CLIENT_NAME).getCommandLineBytes());
+            ctx.pipeline().replace(this, EhloHandler.HANDLER_NAME,
                     new EhloHandler(sessionCreatedFuture, logger, logOpt, sessionId, sessionCtx, sessionData));
             if (logger.isTraceEnabled() || logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
-                logger.debug("[{},{}] Server greeting response of reconnection was successful. Starttls flow begins. Sending EHLO.",
-                        sessionId,
+                logger.debug("[{},{}] Server greeting response of reconnection was successful. Starttls flow begins. Sending EHLO.", sessionId,
                         sessionCtx);
             }
 
@@ -132,7 +129,6 @@ public class PlainGreetingHandler extends MessageToMessageDecoder<SmtpResponse> 
         sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_INACTIVE));
         cleanup();
     }
-
 
     /**
      * Avoids loitering.
