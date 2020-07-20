@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongUnaryOperator;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -185,7 +186,13 @@ public class SmtpAsyncClient {
                     return;
                 }
 
-                final long sessionId = sessionCount.getAndIncrement();
+                // avoid negative ids
+                final long sessionId = sessionCount.getAndUpdate(new LongUnaryOperator() { // atomic update
+                    @Override
+                    public long applyAsLong(final long counter) { // increment by 1 unless it overflows
+                        return counter + 1 < 0 ? 1 : counter + 1;
+                    }
+                });
 
                 final Channel ch = nettyConnectFuture.channel();
                 final ChannelPipeline pipeline = ch.pipeline();

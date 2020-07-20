@@ -18,7 +18,6 @@ import com.yahoo.smtpnio.async.client.SmtpAsyncSessionData;
 import com.yahoo.smtpnio.async.client.SmtpFuture;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
-import com.yahoo.smtpnio.async.internal.SmtpAsyncSessionImpl;
 import com.yahoo.smtpnio.async.request.ExtendedHelloCommand;
 import com.yahoo.smtpnio.async.response.SmtpResponse;
 
