@@ -32,7 +32,7 @@ import io.netty.handler.timeout.IdleStateEvent;
  * <p>
  * Starttls flow dynamically adds/removes three handlers:
  *
- * <li>{@link PlainReconnectGreetingHandler} processes server greeting and send first EHLO.
+ * <li>{@link PlainReconnectGreetingHandler} processes server greeting and send EHLO.
  *
  * <li>{@link StarttlsEhloHandler} processes EHLO response and send STARTTLS.
  *

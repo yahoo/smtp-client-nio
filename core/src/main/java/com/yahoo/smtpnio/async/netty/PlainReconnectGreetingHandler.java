@@ -7,7 +7,6 @@ package com.yahoo.smtpnio.async.netty;
 import java.util.List;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
 
@@ -64,17 +63,15 @@ public class PlainReconnectGreetingHandler extends MessageToMessageDecoder<SmtpR
      * @param logger the {@link Logger} instance for {@link SmtpAsyncSessionImpl}
      * @param logOpt logging option for the session to be created
      * @param sessionId the session id
-     * @param sessionCtx context for the session information; it is used used for logging
      * @param sessionData sessionData object containing information about the connection.
      */
     public PlainReconnectGreetingHandler(@Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionFuture, @Nonnull final Logger logger,
-            @Nonnull final DebugMode logOpt, final long sessionId, @Nullable final Object sessionCtx,
-            @Nonnull final SmtpAsyncSessionData sessionData) {
+            @Nonnull final DebugMode logOpt, final long sessionId, @Nonnull final SmtpAsyncSessionData sessionData) {
         this.sessionCreatedFuture = sessionFuture;
         this.logger = logger;
         this.logOpt = logOpt;
         this.sessionId = sessionId;
-        this.sessionCtx = sessionCtx;
+        this.sessionCtx = sessionData.getSessionContext();
         this.sessionData = sessionData;
     }
 
@@ -84,7 +81,7 @@ public class PlainReconnectGreetingHandler extends MessageToMessageDecoder<SmtpR
             Channel channel = ctx.channel();
             channel.writeAndFlush(new ExtendedHelloCommand(EHLO_CLIENT_NAME).getCommandLineBytes());
             ctx.pipeline().replace(this, StarttlsEhloHandler.HANDLER_NAME,
-                    new StarttlsEhloHandler(sessionCreatedFuture, logger, logOpt, sessionId, sessionCtx, sessionData));
+                    new StarttlsEhloHandler(sessionCreatedFuture, logger, logOpt, sessionId, sessionData));
             if (logger.isTraceEnabled() || logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
                 logger.debug("[{},{}] Server greeting response of reconnection was successful. Starttls flow begins. Sending EHLO.", sessionId,
                         sessionCtx);

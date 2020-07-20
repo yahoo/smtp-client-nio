@@ -7,7 +7,6 @@ package com.yahoo.smtpnio.async.netty;
 import java.util.List;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
 
@@ -36,6 +35,9 @@ public class StarttlsEhloHandler extends MessageToMessageDecoder<SmtpResponse> {
     /** Literal for the name registered in pipeline. */
     public static final String HANDLER_NAME = "StarttlsEhloHandler";
 
+    /** Literal for the STARTTLS capability. */
+    public static final String STARTTLS = "STARTTLS";
+
     /** Future for the created session. */
     private SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture;
 
@@ -54,6 +56,9 @@ public class StarttlsEhloHandler extends MessageToMessageDecoder<SmtpResponse> {
     /** SessionData object containing information about the connection. */
     private SmtpAsyncSessionData sessionData;
 
+    /** Flag used to record whether receive STARTTLS capability. */
+    private boolean hasStarttlsCapability;
+
     /**
      * Initialize an StarttlsEhloHandler for receiving EHLO response and send STARTTLS command.
      *
@@ -61,29 +66,42 @@ public class StarttlsEhloHandler extends MessageToMessageDecoder<SmtpResponse> {
      * @param logger logger instance
      * @param logOpt logging option for this session.
      * @param sessionId session id
-     * @param sessionCtx context for session information
      * @param sessionData sessionData object containing information about the connection.
      */
     public StarttlsEhloHandler(@Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionFuture, @Nonnull final Logger logger,
-            @Nonnull final DebugMode logOpt, final long sessionId, @Nullable final Object sessionCtx,
-            @Nonnull final SmtpAsyncSessionData sessionData) {
+            @Nonnull final DebugMode logOpt, final long sessionId, @Nonnull final SmtpAsyncSessionData sessionData) {
         this.sessionCreatedFuture = sessionFuture;
         this.logger = logger;
         this.logOpt = logOpt;
-        this.sessionCtx = sessionCtx;
+        this.sessionCtx = sessionData.getSessionContext();
         this.sessionId = sessionId;
         this.sessionData = sessionData;
+        this.hasStarttlsCapability = false;
     }
 
     @Override
     public void decode(@Nonnull final ChannelHandlerContext ctx, @Nonnull final SmtpResponse serverResponse, @Nonnull final List<Object> out) {
+        final String message = serverResponse.getMessage();
+        // check STARTTLS capability
+        if (message != null && message.length() >= STARTTLS.length() && message.substring(0, STARTTLS.length()).equalsIgnoreCase(STARTTLS)) {
+            hasStarttlsCapability = true;
+        }
+
         if (serverResponse.isLastLineResponse()) {
-            Channel channel = ctx.channel();
-            channel.writeAndFlush(new StarttlsCommand().getCommandLineBytes());
-            ctx.pipeline().replace(this, StarttlsSessionHandler.HANDLER_NAME,
-                    new StarttlsSessionHandler(sessionCreatedFuture, logger, logOpt, sessionId, sessionCtx, sessionData));
-            if (logger.isTraceEnabled() || logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
-                logger.debug("[{},{}] EHLO response after reconnection was successful. Trying to sent STARTTLS.", sessionId, sessionCtx);
+            if (hasStarttlsCapability) {
+                Channel channel = ctx.channel();
+                channel.writeAndFlush(new StarttlsCommand().getCommandLineBytes());
+                ctx.pipeline().replace(this, StarttlsSessionHandler.HANDLER_NAME,
+                        new StarttlsSessionHandler(sessionCreatedFuture, logger, logOpt, sessionId, sessionData));
+                if (logger.isTraceEnabled() || logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
+                    logger.debug("[{},{}] EHLO response after reconnection was successful. Trying to sent STARTTLS.", sessionId, sessionCtx);
+                }
+            } else {
+                // server doesn't reply STARTTLS capability
+                logger.error("[{},{}] Server doesn't support starttls: host:{}, port:{}", sessionId, sessionCtx, sessionData.getHost(),
+                        sessionData.getPort());
+                sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEPTION, sessionId, sessionCtx));
+                close(ctx);
             }
             cleanup();
         } else if (serverResponse.getReplyType() != SmtpResponse.ReplyType.POSITIVE_COMPLETION) {

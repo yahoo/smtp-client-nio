@@ -51,8 +51,7 @@ public final class SslHandlerBuilder {
      * @param port port of server
      * @param sniNames collection of SNI names
      */
-    private SslHandlerBuilder(@Nonnull final SslContext sslContext, @Nonnull final ByteBufAllocator alloc, @Nonnull final String host,
-            final int port,
+    private SslHandlerBuilder(@Nonnull final SslContext sslContext, @Nonnull final ByteBufAllocator alloc, @Nonnull final String host, final int port,
             @Nullable final Collection<String> sniNames) {
         this.sslContext = sslContext;
         this.allocator = alloc;
@@ -72,8 +71,7 @@ public final class SslHandlerBuilder {
      * @return a SslHandlerBuilder object used to build {@link SslHanlder}
      */
     public static SslHandlerBuilder newBuilder(@Nonnull final SslContext sslContext, @Nonnull final ByteBufAllocator alloc,
-            @Nonnull final String host,
-            final int port, @Nullable final Collection<String> sniNames) {
+            @Nonnull final String host, final int port, @Nullable final Collection<String> sniNames) {
         return new SslHandlerBuilder(sslContext, alloc, host, port, sniNames);
     }
 

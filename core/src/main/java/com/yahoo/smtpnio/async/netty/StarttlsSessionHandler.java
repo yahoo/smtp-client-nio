@@ -7,7 +7,6 @@ package com.yahoo.smtpnio.async.netty;
 import java.util.List;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.net.ssl.SSLException;
 
 import org.slf4j.Logger;
@@ -66,16 +65,14 @@ public class StarttlsSessionHandler extends MessageToMessageDecoder<SmtpResponse
      * @param logger logger instance
      * @param logOpt logging option for this session.
      * @param sessionId session id
-     * @param sessionCtx context for session information
      * @param sessionData sessionData object containing information about the connection.
      */
     public StarttlsSessionHandler(@Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionFuture, @Nonnull final Logger logger,
-            @Nonnull final DebugMode logOpt, final long sessionId, @Nullable final Object sessionCtx,
-            @Nonnull final SmtpAsyncSessionData sessionData) {
+            @Nonnull final DebugMode logOpt, final long sessionId, @Nonnull final SmtpAsyncSessionData sessionData) {
         this.sessionCreatedFuture = sessionFuture;
         this.logger = logger;
         this.logOpt = logOpt;
-        this.sessionCtx = sessionCtx;
+        this.sessionCtx = sessionData.getSessionContext();
         this.sessionId = sessionId;
         this.sessionData = sessionData;
     }

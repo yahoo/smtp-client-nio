@@ -19,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
-import com.yahoo.smtpnio.async.internal.SmtpAsyncSessionImpl;
 import com.yahoo.smtpnio.async.netty.PlainReconnectGreetingHandler;
 import com.yahoo.smtpnio.async.netty.SmtpClientConnectHandler;
 import com.yahoo.smtpnio.async.netty.SslHandlerBuilder;
@@ -132,8 +131,7 @@ public class SmtpAsyncClient {
      * @param debugOption the debugging option used
      * @param sessionCreatedFuture future containing the result of the request
      */
-    void createStarttlsSession(@Nonnull final SmtpAsyncSessionData sessionData,
-            @Nonnull final SmtpAsyncSessionConfig config,
+    void createStarttlsSession(@Nonnull final SmtpAsyncSessionData sessionData, @Nonnull final SmtpAsyncSessionConfig config,
             @Nonnull final SmtpAsyncSession.DebugMode debugOption, @Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture) {
         createSession(sessionData, config, debugOption, sessionCreatedFuture, false);
     }
@@ -200,7 +198,7 @@ public class SmtpAsyncClient {
                 // decide session state
                 SessionMode sessionMode = isSsl ? SessionMode.SSL : (isStarttls ? SessionMode.STARTTLS : SessionMode.NON_SSL);
 
-                // add the session specific handlers
+                // add session specific handlers
                 switch (sessionMode) {
                 case SSL:
                     // add sslHandler for initial ssl connection
@@ -210,12 +208,12 @@ public class SmtpAsyncClient {
                 case STARTTLS:
                     // add PlainGreetingHandler to start starttls flow during re-connection
                     pipeline.addLast(PlainReconnectGreetingHandler.HANDLER_NAME, new PlainReconnectGreetingHandler(sessionCreatedFuture,
-                            LoggerFactory.getLogger(SmtpAsyncSessionImpl.class), debugOption, sessionId, sessionCtx, sessionData));
+                            LoggerFactory.getLogger(PlainReconnectGreetingHandler.class), debugOption, sessionId, sessionData));
                     break;
                 case NON_SSL:
                     // add SmtpClientConnectHandler for initial non-ssl connection
                     pipeline.addLast(SmtpClientConnectHandler.HANDLER_NAME, new SmtpClientConnectHandler(sessionCreatedFuture,
-                            LoggerFactory.getLogger(SmtpAsyncSessionImpl.class), debugOption, sessionId, sessionCtx));
+                            LoggerFactory.getLogger(SmtpClientConnectHandler.class), debugOption, sessionId, sessionCtx));
                     break;
                 default:
                     break;
