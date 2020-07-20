@@ -5,31 +5,25 @@
 package com.yahoo.smtpnio.async.client;
 
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.net.ssl.SNIHostName;
-import javax.net.ssl.SNIServerName;
-import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLParameters;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
 import com.yahoo.smtpnio.async.internal.SmtpAsyncSessionImpl;
-import com.yahoo.smtpnio.async.netty.PlainGreetingHandler;
+import com.yahoo.smtpnio.async.netty.PlainReconnectGreetingHandler;
 import com.yahoo.smtpnio.async.netty.SmtpClientConnectHandler;
+import com.yahoo.smtpnio.async.netty.SslHandlerBuilder;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
@@ -46,6 +40,19 @@ import io.netty.util.concurrent.GenericFutureListener;
  * Implementation for the SMTP NIO client.
  */
 public class SmtpAsyncClient {
+
+    /** Enum used to specify different session mode. */
+    private enum SessionMode {
+
+        /** Session will be built for the first time and via SSL connection. */
+        SSL,
+
+        /** Session will be built for the first time and via plain connection. */
+        NON_SSL,
+
+        /** Session will be built as a re-connection and via plain connection. */
+        STARTTLS;
+    }
 
     /** Handler name for the ssl handler. */
     public static final String SSL_HANDLER = "sslHandler";
@@ -112,7 +119,7 @@ public class SmtpAsyncClient {
             @Nonnull final SmtpAsyncSessionConfig config, @Nonnull final SmtpAsyncSession.DebugMode debugOption) {
         bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, config.getConnectionTimeout());
         final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture = new SmtpFuture<>();
-        createSession(sessionData, config, debugOption, sessionCreatedFuture, false);
+        createSession(sessionData, config, debugOption, sessionCreatedFuture, sessionData.isSslEnabled());
         return sessionCreatedFuture;
     }
 
@@ -124,10 +131,10 @@ public class SmtpAsyncClient {
      * @param debugOption the debugging option used
      * @param sessionCreatedFuture future containing the result of the request
      */
-    void createStartTlsSession(@Nonnull final SmtpAsyncSessionData sessionData,
+    void createStarttlsSession(@Nonnull final SmtpAsyncSessionData sessionData,
             @Nonnull final SmtpAsyncSessionConfig config,
             @Nonnull final SmtpAsyncSession.DebugMode debugOption, @Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture) {
-        createSession(sessionData, config, debugOption, sessionCreatedFuture, true);
+        createSession(sessionData, config, debugOption, sessionCreatedFuture, false);
     }
 
     /**
@@ -137,11 +144,11 @@ public class SmtpAsyncClient {
      * @param config configuration to be used for this session/connection
      * @param debugOption the debugging option used
      * @param sessionCreatedFuture future containing the result of the request
-     * @param isReconnecting whether it's a reconnection session
+     * @param isSsl whether this session use SSL for connection
      */
     private void createSession(@Nonnull final SmtpAsyncSessionData sessionData, @Nonnull final SmtpAsyncSessionConfig config,
             @Nonnull final SmtpAsyncSession.DebugMode debugOption, @Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture,
-            final boolean isReconnecting) {
+            final boolean isSsl) {
         final String host = sessionData.getHost();
 
         if (host == null) {
@@ -149,14 +156,14 @@ public class SmtpAsyncClient {
         }
 
         final int port = sessionData.getPort();
-        final boolean enableSsl = sessionData.isSslEnabled();
+        final boolean isStarttls = sessionData.isStarttlsEnabled();
         final InetSocketAddress localAddress = sessionData.getLocalAddress();
         final Collection<String> sniNames = sessionData.getSniNames();
         final Object sessionCtx = sessionData.getSessionContext();
 
-        if (!isReconnecting && enableSsl) {
+        if (isSsl) {
             // only add sslHandler for the initial ssl connection
-            bootstrap.handler(new SslDetectHandler(sessionCount, sessionData, config, debugOption, this, sessionCreatedFuture));
+            bootstrap.handler(new SslDetectHandler(sessionCount.get(), sessionData, config, debugOption, this, sessionCreatedFuture));
         } else {
             // for reconnection and initial non-ssl connection, using plain initializer
             bootstrap.handler(new SmtpClientChannelInitializer(config.getReadTimeout(), TimeUnit.MILLISECONDS));
@@ -173,7 +180,7 @@ public class SmtpAsyncClient {
                     final SmtpAsyncClientException ex = new SmtpAsyncClientException(SmtpAsyncClientException.FailureType.WRITE_TO_SERVER_FAILED,
                             future.cause());
                     sessionCreatedFuture.done(ex);
-                    logger.error(CONNECT_RESULT_REC, "N/A", sessionCtx, "failure", host, port, enableSsl, sniNames, ex);
+                    logger.error(CONNECT_RESULT_REC, "N/A", sessionCtx, "failure", host, port, isSsl, sniNames, ex);
                     closeChannel(nettyConnectFuture.channel());
                     return;
                 }
@@ -183,54 +190,32 @@ public class SmtpAsyncClient {
                 final Channel ch = nettyConnectFuture.channel();
                 final ChannelPipeline pipeline = ch.pipeline();
 
+                // decide session state
+                SessionMode sessionMode = isSsl ? SessionMode.SSL : (isStarttls ? SessionMode.STARTTLS : SessionMode.NON_SSL);
+
                 // add the session specific handlers
-                if (!isReconnecting && enableSsl) {
+                switch (sessionMode) {
+                case SSL:
                     // add sslHandler for initial ssl connection
-                    pipeline.addFirst(SSL_HANDLER, newSslHandler(sslContext, ch.alloc(), host, port, sniNames));
-                } else if (isReconnecting) {
-                    // add PlainGreetingHandler for reconnection to start starttls flow
-                    pipeline.addLast(PlainGreetingHandler.HANDLER_NAME, new PlainGreetingHandler(sessionCreatedFuture,
+                    final SslHandler sslHandler = new SslHandlerBuilder(sslContext, ch.alloc(), host, port, sniNames).build();
+                    pipeline.addFirst(SSL_HANDLER, sslHandler);
+                    break;
+                case STARTTLS:
+                    // add PlainGreetingHandler to start starttls flow during re-connection
+                    pipeline.addLast(PlainReconnectGreetingHandler.HANDLER_NAME, new PlainReconnectGreetingHandler(sessionCreatedFuture,
                             LoggerFactory.getLogger(SmtpAsyncSessionImpl.class), debugOption, sessionId, sessionCtx, sessionData));
-                } else {
+                    break;
+                case NON_SSL:
                     // add SmtpClientConnectHandler for initial non-ssl connection
-                    pipeline.addLast(SmtpClientConnectHandler.HANDLER_NAME, new SmtpClientConnectHandler(
-                            sessionCreatedFuture,
+                    pipeline.addLast(SmtpClientConnectHandler.HANDLER_NAME, new SmtpClientConnectHandler(sessionCreatedFuture,
                             LoggerFactory.getLogger(SmtpAsyncSessionImpl.class), debugOption, sessionId, sessionCtx));
                 }
 
                 if (logger.isTraceEnabled() || debugOption == SmtpAsyncSession.DebugMode.DEBUG_ON) {
-                    logger.debug(CONNECT_RESULT_REC, sessionId, sessionCtx, "success", host, port, enableSsl, sniNames);
+                    logger.debug(CONNECT_RESULT_REC, sessionId, sessionCtx, "success", host, port, isSsl, sniNames);
                 }
             }
         });
-    }
-
-    /**
-     * Create a new {@link SslHanlder} for decryption/encryption.
-     *
-     * @param sslContext SslContext used to create SslHandler
-     * @param alloc Allocator for ByteBuf objects
-     * @param host host name of server
-     * @param port port of server
-     * @param sniNames collection of SNI namess
-     * @return an SslHandler to process ssl connection
-     */
-    public static SslHandler newSslHandler(@Nonnull final SslContext sslContext, @Nonnull final ByteBufAllocator alloc,
-            @Nullable final String host,
-            final int port, @Nullable final Collection<String> sniNames) {
-        if (sniNames != null && !sniNames.isEmpty()) { // SNI support
-            final List<SNIServerName> serverNames = new ArrayList<>();
-            for (final String sni : sniNames) {
-                serverNames.add(new SNIHostName(sni));
-            }
-            final SSLParameters params = new SSLParameters();
-            params.setServerNames(serverNames);
-            final SSLEngine engine = sslContext.newEngine(alloc, host, port);
-            engine.setSSLParameters(params);
-            return new SslHandler(engine);
-        } else {
-            return sslContext.newHandler(alloc, host, port);
-        }
     }
 
     /**

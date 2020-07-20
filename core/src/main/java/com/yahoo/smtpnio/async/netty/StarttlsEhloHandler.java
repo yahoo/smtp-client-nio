@@ -18,7 +18,7 @@ import com.yahoo.smtpnio.async.client.SmtpAsyncSessionData;
 import com.yahoo.smtpnio.async.client.SmtpFuture;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
-import com.yahoo.smtpnio.async.request.ExtendedHelloCommand;
+import com.yahoo.smtpnio.async.request.StarttlsCommand;
 import com.yahoo.smtpnio.async.response.SmtpResponse;
 
 import io.netty.channel.Channel;
@@ -28,21 +28,16 @@ import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 
 /**
- * This handler receives greeting from server after plain re-connection. If the response code if 250, start Starttls flow by sending EHLO command.
+ * This handler receives EHLO response sent by {@link PlainReconnectGreetingHandler}. If the response code if 2xx, it will send STARTTLS command to
+ * notify server for starting TLS connection.
  */
-public class PlainGreetingHandler extends MessageToMessageDecoder<SmtpResponse> {
+public class StarttlsEhloHandler extends MessageToMessageDecoder<SmtpResponse> {
 
     /** Literal for the name registered in pipeline. */
-    public static final String HANDLER_NAME = "PlainGreetingHandler";
-
-    /** Client name used for server to say greeting to. */
-    public static final String EHLO_CLIENT_NAME = "Reconnection";
+    public static final String HANDLER_NAME = "StarttlsEhloHandler";
 
     /** Future for the created session. */
     private SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture;
-
-    /** SessionData object containing information about the connection. */
-    private SmtpAsyncSessionData sessionData;
 
     /** Logger instance. */
     private Logger logger;
@@ -56,55 +51,57 @@ public class PlainGreetingHandler extends MessageToMessageDecoder<SmtpResponse> 
     /** Context for session information. */
     private Object sessionCtx;
 
+    /** SessionData object containing information about the connection. */
+    private SmtpAsyncSessionData sessionData;
+
     /**
-     * Initializes {@link SmtpClientConnectHandler} to process ok greeting after connection.
+     * Initialize an StarttlsEhloHandler for receiving EHLO response and send STARTTLS command.
      *
      * @param sessionFuture SMTP session future
-     * @param logger the {@link Logger} instance for {@link SmtpAsyncSessionImpl}
-     * @param logOpt logging option for the session to be created
-     * @param sessionId the session id
-     * @param sessionCtx context for the session information; it is used used for logging
+     * @param logger logger instance
+     * @param logOpt logging option for this session.
+     * @param sessionId session id
+     * @param sessionCtx context for session information
      * @param sessionData sessionData object containing information about the connection.
      */
-    public PlainGreetingHandler(@Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionFuture, @Nonnull final Logger logger,
-            @Nonnull final DebugMode logOpt, final long sessionId,
-            @Nullable final Object sessionCtx,
-            @Nullable final SmtpAsyncSessionData sessionData) {
+    public StarttlsEhloHandler(@Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionFuture,
+            @Nonnull final Logger logger,
+            @Nonnull final DebugMode logOpt, final long sessionId, @Nullable final Object sessionCtx,
+            @Nonnull final SmtpAsyncSessionData sessionData) {
         this.sessionCreatedFuture = sessionFuture;
         this.logger = logger;
         this.logOpt = logOpt;
-        this.sessionId = sessionId;
         this.sessionCtx = sessionCtx;
+        this.sessionId = sessionId;
         this.sessionData = sessionData;
     }
 
     @Override
     public void decode(@Nonnull final ChannelHandlerContext ctx, @Nonnull final SmtpResponse serverResponse, @Nonnull final List<Object> out) {
-        if (serverResponse.getCode().value() == SmtpResponse.Code.GREETING) { // successful response
+        if (serverResponse.isLastLineResponse()) {
             Channel channel = ctx.channel();
-            channel.writeAndFlush(new ExtendedHelloCommand(EHLO_CLIENT_NAME).getCommandLineBytes());
-            ctx.pipeline().replace(this, EhloHandler.HANDLER_NAME,
-                    new EhloHandler(sessionCreatedFuture, logger, logOpt, sessionId, sessionCtx, sessionData));
+            channel.writeAndFlush(new StarttlsCommand().getCommandLineBytes());
+            ctx.pipeline().replace(this, StarttlsSessionHandler.HANDLER_NAME,
+                    new StarttlsSessionHandler(sessionCreatedFuture, logger, logOpt, sessionId, sessionCtx, sessionData));
             if (logger.isTraceEnabled() || logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
-                logger.debug("[{},{}] Server greeting response of reconnection was successful. Starttls flow begins. Sending EHLO.", sessionId,
-                        sessionCtx);
+                logger.debug("[{},{}] EHLO response after reconnection was successful. Trying to sent STARTTLS.", sessionId, sessionCtx);
             }
-
-        } else {
-            logger.error("[{},{}] Server greeting response of reconnection was not successful:{}", sessionId, sessionCtx, serverResponse.toString());
-            sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_INVALID_GREETING_CODE, sessionId, sessionCtx,
-                    serverResponse.toString()));
-            close(ctx); // closing the channel if we r not getting a ok greeting
+            cleanup();
+        } else if (serverResponse.getReplyType() != SmtpResponse.ReplyType.POSITIVE_COMPLETION) {
+            // receive a bad response, close the connection
+            logger.error("[{},{}] Receive bad response after sending EHLO: {}", sessionId, sessionCtx, serverResponse.toString());
+            sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEPTION, sessionId, sessionCtx));
+            close(ctx);
+            cleanup();
         }
-        cleanup();
     }
 
     @Override
     public void exceptionCaught(@Nonnull final ChannelHandlerContext ctx, @Nonnull final Throwable cause) {
         logger.error("[{},{}] Re-connection failed due to encountering exception:{}.", sessionId, sessionCtx, cause);
         sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEPTION, cause, sessionId, sessionCtx));
+        close(ctx);
         cleanup();
-        close(ctx); // closing the connection
     }
 
     @Override
@@ -115,8 +112,8 @@ public class PlainGreetingHandler extends MessageToMessageDecoder<SmtpResponse> 
                 logger.error("[{},{}] Re-connection failed due to taking longer than configured allowed time.", sessionId, sessionCtx);
                 sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEED_IDLE_MAX, sessionId, sessionCtx));
                 // closing the channel if server is not responding for max read timeout limit
-                cleanup();
                 close(ctx);
+                cleanup();
             }
         }
     }
@@ -128,6 +125,19 @@ public class PlainGreetingHandler extends MessageToMessageDecoder<SmtpResponse> 
         }
         sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_INACTIVE));
         cleanup();
+        ctx.close();
+    }
+
+    /**
+     * Closes the connection.
+     *
+     * @param ctx the ChannelHandlerContext
+     */
+    private void close(@Nonnull final ChannelHandlerContext ctx) {
+        if (ctx.channel().isActive()) {
+            // closing the channel if server is still active
+            ctx.close();
+        }
     }
 
     /**
@@ -137,18 +147,8 @@ public class PlainGreetingHandler extends MessageToMessageDecoder<SmtpResponse> 
         sessionCreatedFuture = null;
         logger = null;
         logOpt = null;
+        sessionData = null;
         sessionCtx = null;
     }
 
-    /**
-     * Closes the connection.
-     *
-     * @param ctx the ChannelHandlerContext
-     */
-    private void close(final ChannelHandlerContext ctx) {
-        if (ctx.channel().isActive()) {
-            // closing the channel if server is still active
-            ctx.close();
-        }
-    }
 }

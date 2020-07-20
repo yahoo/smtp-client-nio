@@ -28,17 +28,18 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 
 /**
- * This handler receives STARTTLS response sent by {@link EhloHandler}. If the response code if 250, add SslHandler to upgrade current plain
- * connection to encrypted connection. starting encryption connection.
+ * This handler receives STARTTLS response sent by {@link StarttlsEhloHandler}. If the response code is 250, it will add SslHandler to upgrade current
+ * plain connection to TLS connection.
  */
-public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
+public class StarttlsSessionHandler extends MessageToMessageDecoder<SmtpResponse> {
 
     /** Literal for the name registered in pipeline. */
-    public static final String HANDLER_NAME = "StarttlsHandler";
+    public static final String HANDLER_NAME = "StarttlsSessionHandler";
 
     /** Future for the created session. */
     private SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture;
@@ -59,7 +60,7 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
     private SmtpAsyncSessionData sessionData;
 
     /**
-     * Initialize an StarttlsHandler for receiving STARTTLS response and upgrading to encrypted connection.
+     * Initialize an StarttlsSessionHandler for receiving STARTTLS response and upgrading to encrypted connection.
      *
      * @param sessionFuture SMTP session future
      * @param logger logger instance
@@ -68,10 +69,10 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
      * @param sessionCtx context for session information
      * @param sessionData sessionData object containing information about the connection.
      */
-    public StarttlsHandler(@Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionFuture,
+    public StarttlsSessionHandler(@Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionFuture,
             @Nonnull final Logger logger,
             @Nonnull final DebugMode logOpt, final long sessionId, @Nullable final Object sessionCtx,
-            @Nullable final SmtpAsyncSessionData sessionData) {
+            @Nonnull final SmtpAsyncSessionData sessionData) {
         this.sessionCreatedFuture = sessionFuture;
         this.logger = logger;
         this.logOpt = logOpt;
@@ -91,14 +92,16 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
             final SmtpAsyncCreateSessionResponse response = new SmtpAsyncCreateSessionResponse(session, serverResponse);
             try {
                 // add sslHandler
-                SslContext sslContext = SslContextBuilder.forClient().build();
-                ctx.pipeline().addFirst(SmtpAsyncClient.newSslHandler(sslContext, ctx.alloc(), sessionData.getHost(), sessionData.getPort(),
-                        sessionData.getSniNames()));
+                final SslContext sslContext = SslContextBuilder.forClient().build();
+                // add sslHandler for initial ssl connection
+                final SslHandler sslHandler = new SslHandlerBuilder(sslContext, ctx.alloc(), sessionData.getHost(), sessionData.getPort(),
+                        sessionData.getSniNames()).build();
+                ctx.pipeline().addFirst(SmtpAsyncClient.SSL_HANDLER, sslHandler);
                 if (logger.isTraceEnabled() || logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
                     logger.debug("[{},{}] Starttls was successful. Connection is now encrypted. ", sessionId, sessionCtx);
                 }
                 sessionCreatedFuture.done(response);
-            } catch (SSLException e) {
+            } catch (final SSLException e) {
                 logger.error("[{},{}] Failed to create SslContext after receving STARTTLS response: {}", sessionId, sessionCtx, e);
                 sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEPTION, e, sessionId, sessionCtx));
                 close(ctx);
@@ -107,7 +110,7 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
             logger.error("[{},{}] STARTTLS response was not successful:{}", sessionId, sessionCtx, serverResponse.toString());
             sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_INVALID_GREETING_CODE, sessionId, sessionCtx,
                     serverResponse.toString()));
-            close(ctx); // closing the channel if we r not getting a ok greeting
+            close(ctx); // closing the channel if we are not getting a ok greeting
         }
         cleanup();
 
@@ -117,7 +120,8 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
     public void exceptionCaught(@Nonnull final ChannelHandlerContext ctx, @Nonnull final Throwable cause) {
         logger.error("[{},{}] Re-connection failed due to encountering exception:{}.", sessionId, sessionCtx, cause);
         sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEPTION, cause, sessionId, sessionCtx));
-        close(ctx); // closing the connection
+        cleanup();
+        close(ctx);
     }
 
     @Override
@@ -128,8 +132,8 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
                 logger.error("[{},{}] Re-connection failed due to taking longer than configured allowed time.", sessionId, sessionCtx);
                 sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEED_IDLE_MAX, sessionId, sessionCtx));
                 // closing the channel if server is not responding for max read timeout limit
-                cleanup();
                 close(ctx);
+                cleanup();
             }
         }
     }
@@ -148,7 +152,7 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
      *
      * @param ctx the ChannelHandlerContext
      */
-    private void close(final ChannelHandlerContext ctx) {
+    private void close(@Nonnull final ChannelHandlerContext ctx) {
         if (ctx.channel().isActive()) {
             // closing the channel if server is still active
             ctx.close();
@@ -162,8 +166,8 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
         sessionCreatedFuture = null;
         logger = null;
         logOpt = null;
-        sessionCtx = null;
         sessionData = null;
+        sessionCtx = null;
     }
 
 }
