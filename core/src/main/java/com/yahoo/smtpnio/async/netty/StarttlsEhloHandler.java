@@ -28,7 +28,7 @@ import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 
 /**
- * This handler receives EHLO response sent by {@link PlainReconnectGreetingHandler}. If the response code if 2xx, it will send STARTTLS command to
+ * This handler receives EHLO response sent by {@link PlainReconnectGreetingHandler}. If the response code is 2xx, it will send STARTTLS command to
  * notify server for starting TLS connection.
  */
 public class StarttlsEhloHandler extends MessageToMessageDecoder<SmtpResponse> {
@@ -64,8 +64,7 @@ public class StarttlsEhloHandler extends MessageToMessageDecoder<SmtpResponse> {
      * @param sessionCtx context for session information
      * @param sessionData sessionData object containing information about the connection.
      */
-    public StarttlsEhloHandler(@Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionFuture,
-            @Nonnull final Logger logger,
+    public StarttlsEhloHandler(@Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionFuture, @Nonnull final Logger logger,
             @Nonnull final DebugMode logOpt, final long sessionId, @Nullable final Object sessionCtx,
             @Nonnull final SmtpAsyncSessionData sessionData) {
         this.sessionCreatedFuture = sessionFuture;

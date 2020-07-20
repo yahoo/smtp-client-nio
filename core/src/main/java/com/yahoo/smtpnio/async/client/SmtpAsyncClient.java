@@ -144,7 +144,7 @@ public class SmtpAsyncClient {
      * @param config configuration to be used for this session/connection
      * @param debugOption the debugging option used
      * @param sessionCreatedFuture future containing the result of the request
-     * @param isSsl whether this session use SSL for connection
+     * @param isSsl whether this session uses SSL for connection
      */
     private void createSession(@Nonnull final SmtpAsyncSessionData sessionData, @Nonnull final SmtpAsyncSessionConfig config,
             @Nonnull final SmtpAsyncSession.DebugMode debugOption, @Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture,
@@ -209,6 +209,9 @@ public class SmtpAsyncClient {
                     // add SmtpClientConnectHandler for initial non-ssl connection
                     pipeline.addLast(SmtpClientConnectHandler.HANDLER_NAME, new SmtpClientConnectHandler(sessionCreatedFuture,
                             LoggerFactory.getLogger(SmtpAsyncSessionImpl.class), debugOption, sessionId, sessionCtx));
+                    break;
+                default:
+                    break;
                 }
 
                 if (logger.isTraceEnabled() || debugOption == SmtpAsyncSession.DebugMode.DEBUG_ON) {

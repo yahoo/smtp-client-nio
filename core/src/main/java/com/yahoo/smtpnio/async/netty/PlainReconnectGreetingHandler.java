@@ -70,7 +70,7 @@ public class PlainReconnectGreetingHandler extends MessageToMessageDecoder<SmtpR
      */
     public PlainReconnectGreetingHandler(@Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionFuture, @Nonnull final Logger logger,
             @Nonnull final DebugMode logOpt, final long sessionId, @Nullable final Object sessionCtx,
-            @Nullable final SmtpAsyncSessionData sessionData) {
+            @Nonnull final SmtpAsyncSessionData sessionData) {
         this.sessionCreatedFuture = sessionFuture;
         this.logger = logger;
         this.logOpt = logOpt;
@@ -90,7 +90,6 @@ public class PlainReconnectGreetingHandler extends MessageToMessageDecoder<SmtpR
                 logger.debug("[{},{}] Server greeting response of reconnection was successful. Starttls flow begins. Sending EHLO.", sessionId,
                         sessionCtx);
             }
-
         } else {
             logger.error("[{},{}] Server greeting response of reconnection was not successful:{}", sessionId, sessionCtx, serverResponse.toString());
             sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_INVALID_GREETING_CODE, sessionId, sessionCtx,

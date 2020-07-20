@@ -69,8 +69,7 @@ public class StarttlsSessionHandler extends MessageToMessageDecoder<SmtpResponse
      * @param sessionCtx context for session information
      * @param sessionData sessionData object containing information about the connection.
      */
-    public StarttlsSessionHandler(@Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionFuture,
-            @Nonnull final Logger logger,
+    public StarttlsSessionHandler(@Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionFuture, @Nonnull final Logger logger,
             @Nonnull final DebugMode logOpt, final long sessionId, @Nullable final Object sessionCtx,
             @Nonnull final SmtpAsyncSessionData sessionData) {
         this.sessionCreatedFuture = sessionFuture;

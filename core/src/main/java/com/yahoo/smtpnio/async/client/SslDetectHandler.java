@@ -16,10 +16,7 @@ import org.slf4j.LoggerFactory;
 import com.yahoo.smtpnio.async.client.SmtpAsyncSession.DebugMode;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
-import com.yahoo.smtpnio.async.netty.PlainReconnectGreetingHandler;
 import com.yahoo.smtpnio.async.netty.SmtpClientConnectHandler;
-import com.yahoo.smtpnio.async.netty.StarttlsEhloHandler;
-import com.yahoo.smtpnio.async.netty.StarttlsSessionHandler;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
