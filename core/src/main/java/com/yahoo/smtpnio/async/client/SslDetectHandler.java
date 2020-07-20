@@ -92,7 +92,7 @@ public class SslDetectHandler extends ByteToMessageDecoder {
         // ssl succeeds
         if (logger.isTraceEnabled() || logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
             logger.debug(SSL_DETECT_REC, sessionId, sessionData.getSessionContext(), "Available", sessionData.getHost(), sessionData.getPort(), true,
-                    sessionData.isStarttlsEnabled(), sessionData.getSniNames());
+                    sessionConfig.getEnableStarttls(), sessionData.getSniNames());
         }
         ctx.pipeline().replace(this, SmtpClientChannelInitializer.INITIALIZER_NAME,
                 new SmtpClientChannelInitializer(sessionConfig.getReadTimeout(), TimeUnit.MILLISECONDS));
@@ -108,7 +108,7 @@ public class SslDetectHandler extends ByteToMessageDecoder {
         final int port = sessionData.getPort();
         final Collection<String> sniNames = sessionData.getSniNames();
         final Object sessionCtx = sessionData.getSessionContext();
-        final boolean enableStarttls = sessionData.isStarttlsEnabled();
+        final boolean enableStarttls = sessionConfig.getEnableStarttls();
 
         close(ctx); // closing the connection
 

@@ -155,7 +155,7 @@ public class SmtpAsyncClient {
         }
 
         final int port = sessionData.getPort();
-        final boolean isStarttls = sessionData.isStarttlsEnabled();
+        final boolean isStarttls = config.getEnableStarttls();
         final InetSocketAddress localAddress = sessionData.getLocalAddress();
         final Collection<String> sniNames = sessionData.getSniNames();
         final Object sessionCtx = sessionData.getSessionContext();

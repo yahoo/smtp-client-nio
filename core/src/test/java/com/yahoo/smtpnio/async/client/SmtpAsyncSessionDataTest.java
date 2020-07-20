@@ -21,7 +21,7 @@ public class SmtpAsyncSessionDataTest {
      */
     @Test
     public void testConstructorWithoutSetters() {
-        final SmtpAsyncSessionData data = SmtpAsyncSessionData.newBuilder("smtp.my.server.com", 993, true, true).build();
+        final SmtpAsyncSessionData data = SmtpAsyncSessionData.newBuilder("smtp.my.server.com", 993, true).build();
         Assert.assertEquals(data.getHost(), "smtp.my.server.com", "Unexpected host");
         Assert.assertEquals(data.getPort(), 993, "Unexpected port number");
         Assert.assertTrue(data.isSslEnabled(), "Unexpected SSL flag");
@@ -38,8 +38,8 @@ public class SmtpAsyncSessionDataTest {
         final InetSocketAddress localAddress = new InetSocketAddress("localhost", 65535);
         final String context = "UnitTest101";
         final List<String> sniNames = Arrays.asList("Sni1", "Sni2");
-        final SmtpAsyncSessionData data = SmtpAsyncSessionData.newBuilder("my_host.smtp.org", 587, false,
-                true)
+        final SmtpAsyncSessionData data = SmtpAsyncSessionData
+                .newBuilder("my_host.smtp.org", 587, false)
                 .setSniNames(sniNames)
                 .setLocalAddress(localAddress)
                 .setSessionContext(context)
