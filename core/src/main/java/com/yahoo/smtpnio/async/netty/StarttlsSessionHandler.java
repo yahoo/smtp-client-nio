@@ -94,8 +94,8 @@ public class StarttlsSessionHandler extends MessageToMessageDecoder<SmtpResponse
                 // add sslHandler
                 final SslContext sslContext = SslContextBuilder.forClient().build();
                 // add sslHandler for initial ssl connection
-                final SslHandler sslHandler = new SslHandlerBuilder(sslContext, ctx.alloc(), sessionData.getHost(), sessionData.getPort(),
-                        sessionData.getSniNames()).build();
+                final SslHandler sslHandler = SslHandlerBuilder
+                        .newBuilder(sslContext, ctx.alloc(), sessionData.getHost(), sessionData.getPort(), sessionData.getSniNames()).build();
                 ctx.pipeline().addFirst(SmtpAsyncClient.SSL_HANDLER, sslHandler);
                 if (logger.isTraceEnabled() || logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
                     logger.debug("[{},{}] Starttls was successful. Connection is now encrypted. ", sessionId, sessionCtx);

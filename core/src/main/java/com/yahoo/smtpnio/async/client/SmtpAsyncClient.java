@@ -197,7 +197,7 @@ public class SmtpAsyncClient {
                 switch (sessionMode) {
                 case SSL:
                     // add sslHandler for initial ssl connection
-                    final SslHandler sslHandler = new SslHandlerBuilder(sslContext, ch.alloc(), host, port, sniNames).build();
+                    final SslHandler sslHandler = SslHandlerBuilder.newBuilder(sslContext, ch.alloc(), host, port, sniNames).build();
                     pipeline.addFirst(SSL_HANDLER, sslHandler);
                     break;
                 case STARTTLS:

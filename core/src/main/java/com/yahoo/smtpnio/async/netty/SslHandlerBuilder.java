@@ -23,27 +23,72 @@ import io.netty.handler.ssl.SslHandler;
  * This class provides a builder to create new SslHandler.
  */
 public class SslHandlerBuilder {
-    /** SslContext used to create SslHandler. */
-    @Nonnull
-    private final SslContext sslContext;
+    /**
+     * Builder class to build {@link SslContext} instances.
+     */
+    public static final class Builder {
+        /** SslContext used to create SslHandler. */
+        @Nonnull
+        private final SslContext sslContext;
 
-    /** Allocator for ByteBuf objects. */
-    @Nonnull
-    private final ByteBufAllocator allocator;
+        /** Allocator for ByteBuf objects. */
+        @Nonnull
+        private final ByteBufAllocator allocator;
 
-    /** Host name that the client will connect to. */
-    @Nonnull
-    private final String host;
+        /** Host name that the client will connect to. */
+        @Nonnull
+        private final String host;
 
-    /** Port number to connect to. */
-    private final int port;
+        /** Port number to connect to. */
+        private final int port;
 
-    /** Server Name Indication (SNI) list. */
-    @Nullable
-    private final Collection<String> sniNames;
+        /** Server Name Indication (SNI) list. */
+        @Nullable
+        private final Collection<String> sniNames;
+
+        /**
+         * Initialize an Builder object used to build {@link SslHanlder}.
+         *
+         * @param sslContext SslContext used to create SslHandler
+         * @param alloc allocator for ByteBuf objects
+         * @param host host name of server
+         * @param port port of server
+         * @param sniNames collection of SNI names
+         */
+        private Builder(@Nonnull final SslContext sslContext, @Nonnull final ByteBufAllocator allocator,
+                @Nonnull final String host,
+                final int port, @Nullable final Collection<String> sniNames) {
+            this.sslContext = sslContext;
+            this.allocator = allocator;
+            this.host = host;
+            this.port = port;
+            this.sniNames = sniNames;
+        }
+
+        /**
+         * Create a new {@link SslHanlder} for decryption/encryption.
+         *
+         * @return an Sslhandler to process ssl connection
+         */
+        public SslHandler build() {
+            if (sniNames != null && !sniNames.isEmpty()) { // SNI support
+                final List<SNIServerName> serverNames = new ArrayList<>();
+                for (final String sni : sniNames) {
+                    serverNames.add(new SNIHostName(sni));
+                }
+                final SSLParameters params = new SSLParameters();
+                params.setServerNames(serverNames);
+                final SSLEngine engine = sslContext.newEngine(allocator, host, port);
+                engine.setSSLParameters(params);
+                return new SslHandler(engine);
+            } else {
+                return sslContext.newHandler(allocator, host, port);
+            }
+        }
+    }
 
     /**
-     * Initialize an SslHandlerBuilder object used to build {@link SslHanlder}.
+     * Creates a new builder object used to build {@link SslHanlder}.
      *
      * @param sslContext SslContext used to create SslHandler
      * @param alloc allocator for ByteBuf objects
@@ -51,34 +96,11 @@ public class SslHandlerBuilder {
      * @param port port of server
      * @param sniNames collection of SNI names
      */
-    public SslHandlerBuilder(@Nonnull final SslContext sslContext, @Nonnull final ByteBufAllocator allocator,
-            @Nonnull final String host, final int port, @Nullable final Collection<String> sniNames) {
-        this.sslContext = sslContext;
-        this.allocator = allocator;
-        this.host = host;
-        this.port = port;
-        this.sniNames = sniNames;
+    public static Builder newBuilder(@Nonnull final SslContext sslContext, @Nonnull final ByteBufAllocator allocator, @Nonnull final String host,
+            final int port, @Nullable final Collection<String> sniNames) {
+        return new Builder(sslContext, allocator, host, port, sniNames);
     }
 
-    /**
-     * Create a new {@link SslHanlder} for decryption/encryption.
-     *
-     * @return an Sslhandler to process ssl connection
-     */
-    public SslHandler build() {
-        if (sniNames != null && !sniNames.isEmpty()) { // SNI support
-            final List<SNIServerName> serverNames = new ArrayList<>();
-            for (final String sni : sniNames) {
-                serverNames.add(new SNIHostName(sni));
-            }
-            final SSLParameters params = new SSLParameters();
-            params.setServerNames(serverNames);
-            final SSLEngine engine = sslContext.newEngine(allocator, host, port);
-            engine.setSSLParameters(params);
-            return new SslHandler(engine);
-        } else {
-            return sslContext.newHandler(allocator, host, port);
-        }
-    }
+
 
 }
