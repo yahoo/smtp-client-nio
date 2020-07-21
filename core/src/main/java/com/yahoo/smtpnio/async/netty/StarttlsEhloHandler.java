@@ -83,7 +83,7 @@ public class StarttlsEhloHandler extends MessageToMessageDecoder<SmtpResponse> {
     public void decode(@Nonnull final ChannelHandlerContext ctx, @Nonnull final SmtpResponse serverResponse, @Nonnull final List<Object> out) {
         final String message = serverResponse.getMessage();
         // check STARTTLS capability
-        if (message != null && message.length() >= STARTTLS.length() && message.substring(0, STARTTLS.length()).equalsIgnoreCase(STARTTLS)) {
+        if (message.length() >= STARTTLS.length() && message.substring(0, STARTTLS.length()).equalsIgnoreCase(STARTTLS)) {
             hasStarttlsCapability = true;
         }
 

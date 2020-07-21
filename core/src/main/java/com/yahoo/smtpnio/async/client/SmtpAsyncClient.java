@@ -162,7 +162,8 @@ public class SmtpAsyncClient {
 
         if (isSsl) {
             // only add sslHandler for the initial ssl connection
-            bootstrap.handler(new SslDetectHandler(sessionCount.get(), sessionData, config, debugOption, this, sessionCreatedFuture));
+            bootstrap.handler(new SslDetectHandler(sessionCount.get(), sessionData, config, LoggerFactory.getLogger(SslDetectHandler.class),
+                    debugOption, this, sessionCreatedFuture));
         } else {
             // for reconnection and initial non-ssl connection, using plain initializer
             bootstrap.handler(new SmtpClientChannelInitializer(config.getReadTimeout(), TimeUnit.MILLISECONDS));
@@ -196,7 +197,7 @@ public class SmtpAsyncClient {
                 final ChannelPipeline pipeline = ch.pipeline();
 
                 // decide session state
-                SessionMode sessionMode = isSsl ? SessionMode.SSL : (isStarttls ? SessionMode.STARTTLS : SessionMode.NON_SSL);
+                final SessionMode sessionMode = isSsl ? SessionMode.SSL : (isStarttls ? SessionMode.STARTTLS : SessionMode.NON_SSL);
 
                 // add session specific handlers
                 switch (sessionMode) {

@@ -71,14 +71,15 @@ public class SslDetectHandler extends ByteToMessageDecoder {
      * @param sessionId client's session id
      * @param sessionData connection data for this session
      * @param sessionConfig configurations for this session
+     * @param logger logger for debugging messages
      * @param logOpt debugging options
      * @param smtpAsyncClient Client that holds this connection
      * @param sessionCreatedFuture SMTP session future
      */
     public SslDetectHandler(final long sessionId, @Nonnull final SmtpAsyncSessionData sessionData,
-            @Nonnull final SmtpAsyncSessionConfig sessionConfig, @Nonnull final DebugMode logOpt, @Nonnull final SmtpAsyncClient smtpAsyncClient,
-            @Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture) {
-        this.logger = LoggerFactory.getLogger(SslDetectHandler.class);
+            @Nonnull final SmtpAsyncSessionConfig sessionConfig, @Nonnull final Logger logger, @Nonnull final DebugMode logOpt,
+            @Nonnull final SmtpAsyncClient smtpAsyncClient, @Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture) {
+        this.logger = logger;
         this.sessionConfig = sessionConfig;
         this.sessionData = sessionData;
         this.logOpt = logOpt;
@@ -102,7 +103,7 @@ public class SslDetectHandler extends ByteToMessageDecoder {
     }
 
     @Override
-    public void exceptionCaught(@Nonnull final ChannelHandlerContext ctx, @Nonnull final Throwable cause) throws Exception {
+    public void exceptionCaught(@Nonnull final ChannelHandlerContext ctx, @Nonnull final Throwable cause) {
 
         final String host = sessionData.getHost();
         final int port = sessionData.getPort();
