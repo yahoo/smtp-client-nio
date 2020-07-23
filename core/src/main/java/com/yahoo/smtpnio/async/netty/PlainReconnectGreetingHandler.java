@@ -78,7 +78,7 @@ public class PlainReconnectGreetingHandler extends MessageToMessageDecoder<SmtpR
     @Override
     public void decode(@Nonnull final ChannelHandlerContext ctx, @Nonnull final SmtpResponse serverResponse, @Nonnull final List<Object> out) {
         if (serverResponse.getCode().value() == SmtpResponse.Code.GREETING) { // successful response
-            Channel channel = ctx.channel();
+            final Channel channel = ctx.channel();
             channel.writeAndFlush(new ExtendedHelloCommand(EHLO_CLIENT_NAME).getCommandLineBytes());
             ctx.pipeline().replace(this, StarttlsEhloHandler.HANDLER_NAME,
                     new StarttlsEhloHandler(sessionCreatedFuture, logger, logOpt, sessionId, sessionData));

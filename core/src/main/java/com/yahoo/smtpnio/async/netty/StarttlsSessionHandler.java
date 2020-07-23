@@ -98,12 +98,12 @@ public class StarttlsSessionHandler extends MessageToMessageDecoder<SmtpResponse
                 // add sslHandler for initial ssl connection
                 final SslHandler sslHandler = SslHandlerBuilder
                         .newBuilder(sslContext, ctx.alloc(), sessionData.getHost(), sessionData.getPort(), sessionData.getSniNames()).build();
-                Promise<Channel> sslConnectionFture = (Promise<Channel>)sslHandler.handshakeFuture();
+                final Promise<Channel> sslConnectionFture = (Promise<Channel>) sslHandler.handshakeFuture();
                 final SmtpFuture<SmtpAsyncCreateSessionResponse> sesssionFuture = this.sessionCreatedFuture;
                 // check if ssl connection succeed
                 sslConnectionFture.addListener(new GenericFutureListener<io.netty.util.concurrent.Future<? super Channel>>() {
                     @Override
-                    public void operationComplete(io.netty.util.concurrent.Future<? super Channel> future) throws Exception {
+                    public void operationComplete(final io.netty.util.concurrent.Future<? super Channel> future) throws Exception {
                         if (future.isSuccess()) {
                             sesssionFuture.done(response);
                         } else {
