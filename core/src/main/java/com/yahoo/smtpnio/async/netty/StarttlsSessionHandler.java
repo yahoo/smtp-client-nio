@@ -22,6 +22,7 @@ import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
 import com.yahoo.smtpnio.async.internal.SmtpAsyncSessionImpl;
 import com.yahoo.smtpnio.async.response.SmtpResponse;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.MessageToMessageDecoder;
@@ -30,6 +31,8 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
+import io.netty.util.concurrent.GenericFutureListener;
+import io.netty.util.concurrent.Promise;
 
 /**
  * This handler receives STARTTLS response sent by {@link StarttlsEhloHandler}. If the response code is 250, it will add SslHandler to upgrade current
@@ -39,6 +42,9 @@ public class StarttlsSessionHandler extends MessageToMessageDecoder<SmtpResponse
 
     /** Literal for the name registered in pipeline. */
     public static final String HANDLER_NAME = "StarttlsSessionHandler";
+
+    /** Handler name for idle sate handler. */
+    private static final String IDLE_STATE_HANDLER_NAME = "idleStateHandler";
 
     /** Future for the created session. */
     private SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture;
@@ -92,11 +98,25 @@ public class StarttlsSessionHandler extends MessageToMessageDecoder<SmtpResponse
                 // add sslHandler for initial ssl connection
                 final SslHandler sslHandler = SslHandlerBuilder
                         .newBuilder(sslContext, ctx.alloc(), sessionData.getHost(), sessionData.getPort(), sessionData.getSniNames()).build();
-                ctx.pipeline().addFirst(SmtpAsyncClient.SSL_HANDLER, sslHandler);
+                Promise<Channel> sslConnectionFture = (Promise<Channel>)sslHandler.handshakeFuture();
+                final SmtpFuture<SmtpAsyncCreateSessionResponse> sesssionFuture = this.sessionCreatedFuture;
+                // check if ssl connection succeed
+                sslConnectionFture.addListener(new GenericFutureListener<io.netty.util.concurrent.Future<? super Channel>>() {
+                    @Override
+                    public void operationComplete(io.netty.util.concurrent.Future<? super Channel> future) throws Exception {
+                        if (future.isSuccess()) {
+                            sesssionFuture.done(response);
+                        } else {
+                            logger.error("[{},{}] SslConnection failed after adding SslHandler: {}", sessionId, sessionCtx);
+                            sesssionFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEPTION, sessionId, sessionCtx));
+                            close(ctx);
+                        }
+                    }
+                });
+                ctx.pipeline().addAfter(IDLE_STATE_HANDLER_NAME, SmtpAsyncClient.SSL_HANDLER, sslHandler);
                 if (logger.isTraceEnabled() || logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
                     logger.debug("[{},{}] Starttls was successful. Connection is now encrypted.", sessionId, sessionCtx);
                 }
-                sessionCreatedFuture.done(response);
             } catch (final SSLException e) {
                 logger.error("[{},{}] Failed to create SslContext after receving STARTTLS response: {}", sessionId, sessionCtx, e);
                 sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEPTION, e, sessionId, sessionCtx));

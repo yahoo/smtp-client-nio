@@ -6,17 +6,17 @@ package com.yahoo.smtpnio.async.client;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.yahoo.smtpnio.async.client.SmtpAsyncSession.DebugMode;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
-import com.yahoo.smtpnio.async.netty.SmtpClientConnectHandler;
+import com.yahoo.smtpnio.async.netty.PlainReconnectGreetingHandler;
+import com.yahoo.smtpnio.async.netty.StarttlsEhloHandler;
+import com.yahoo.smtpnio.async.netty.StarttlsSessionHandler;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -39,6 +39,8 @@ import io.netty.handler.timeout.IdleStateEvent;
  * <li>{@link StarttlsSessionHandler} processes STARTLS response and upgrade plain connection to ssl connection.
  */
 public class SslDetectHandler extends ByteToMessageDecoder {
+    /** Literal for the name registered in pipeline. */
+    public static final String HANDLER_NAME = "SslDetectHandler";
 
     /** Debug record string template for Ssl detection. */
     private static final String SSL_DETECT_REC = "[{},{}] finish checking native SSL availability. "
@@ -95,10 +97,7 @@ public class SslDetectHandler extends ByteToMessageDecoder {
             logger.debug(SSL_DETECT_REC, sessionId, sessionData.getSessionContext(), "Available", sessionData.getHost(), sessionData.getPort(), true,
                     sessionConfig.getEnableStarttls(), sessionData.getSniNames());
         }
-        ctx.pipeline().replace(this, SmtpClientChannelInitializer.INITIALIZER_NAME,
-                new SmtpClientChannelInitializer(sessionConfig.getReadTimeout(), TimeUnit.MILLISECONDS));
-        ctx.pipeline().addLast(SmtpClientConnectHandler.HANDLER_NAME, new SmtpClientConnectHandler(sessionCreatedFuture,
-                LoggerFactory.getLogger(SmtpClientConnectHandler.class), logOpt, sessionId, sessionData.getSessionContext()));
+        ctx.pipeline().remove(this);
         cleanup();
     }
 
@@ -111,7 +110,7 @@ public class SslDetectHandler extends ByteToMessageDecoder {
         final Object sessionCtx = sessionData.getSessionContext();
         final boolean enableStarttls = sessionConfig.getEnableStarttls();
 
-        close(ctx); // closing the connection
+        ctx.close();
 
         // ssl failed, re-connect with plain connection
         if (cause.getCause() instanceof NotSslRecordException) {
@@ -164,6 +163,13 @@ public class SslDetectHandler extends ByteToMessageDecoder {
             // closing the channel if server is still active
             ctx.close();
         }
+    }
+
+    @Override
+    public void channelInactive(@Nonnull final ChannelHandlerContext ctx) {
+        // after close() has been called on SslHandler failure, channelInactive() will also be called
+        // sessionCreatedFuture shouldn't be done here because
+        cleanup();
     }
 
     /**
