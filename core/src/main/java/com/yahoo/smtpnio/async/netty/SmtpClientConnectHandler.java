@@ -71,7 +71,7 @@ public class SmtpClientConnectHandler extends MessageToMessageDecoder<SmtpRespon
      *
      * @param ctx the ChannelHandlerContext
      */
-    private void close(final ChannelHandlerContext ctx) {
+    private void close(@Nonnull final ChannelHandlerContext ctx) {
         if (ctx.channel().isActive()) {
             // closing the channel if server is still active
             ctx.close();
@@ -94,7 +94,7 @@ public class SmtpClientConnectHandler extends MessageToMessageDecoder<SmtpRespon
             logger.error("[{},{}] Server response was not successful:{}", sessionId, sessionCtx, serverResponse.toString());
             sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_INVALID_GREETING_CODE, sessionId, sessionCtx,
                     serverResponse.toString()));
-            close(ctx); // closing the channel if we r not getting a ok greeting
+            close(ctx); // closing the channel if we are not getting a ok greeting
         }
         cleanup();
     }

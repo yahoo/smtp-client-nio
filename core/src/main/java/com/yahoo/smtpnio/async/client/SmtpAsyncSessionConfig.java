@@ -21,6 +21,9 @@ public final class SmtpAsyncSessionConfig {
     /** Maximum time in milliseconds for read timeout. The maximum time allowing no responses from server since client command sent. */
     private int readTimeoutMillis = DEFAULT_READ_TIMEOUT_MILLIS;
 
+    /** Whether to enable Starttls for this client. */
+    private boolean enableStarttls = true;
+
     /**
      * @return Maximum time for opening a connection before timeout
      */
@@ -56,4 +59,23 @@ public final class SmtpAsyncSessionConfig {
         this.readTimeoutMillis = readTimeoutMillis;
         return this;
     }
+
+    /**
+     * Sets flag to decide whether to use starttls.
+     *
+     * @param enableStarttls starttls flag
+     * @return this object for chaining
+     */
+    public SmtpAsyncSessionConfig setEnableStarttls(final boolean enableStarttls) {
+        this.enableStarttls = enableStarttls;
+        return this;
+    }
+
+    /**
+     * @return flag specifying whether to use starttls.
+     */
+    public boolean getEnableStarttls() {
+        return enableStarttls;
+    }
+
 }
