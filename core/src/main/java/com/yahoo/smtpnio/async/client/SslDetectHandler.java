@@ -24,7 +24,7 @@ import io.netty.handler.timeout.IdleStateEvent;
 
 /**
  * This handler detects whether native SSL is available for this connection. If {@link NotSslRecordException} is caught, SSL is not available, fall
- * over to plain connection and try to use the Starttls flow if enabled.
+ * back to plain connection and try to use the Starttls flow if enabled.
  */
 public class SslDetectHandler extends ByteToMessageDecoder {
     /** Literal for the name registered in pipeline. */

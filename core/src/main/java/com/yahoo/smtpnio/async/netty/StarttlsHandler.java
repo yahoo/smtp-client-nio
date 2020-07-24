@@ -97,7 +97,7 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
     /** Starttls state that the handler is in. */
     private StarttlsState starttlsState;
 
-    /** Flag record whether server has replied STARTTLS capability. */
+    /** Flag recording whether server has replied STARTTLS capability. */
     private boolean receivedStarttlsCapability;
 
     /**
@@ -206,6 +206,7 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
                 }
             } else {
                 logger.error("[{},{}] STARTTLS response was not successful:{}", sessionId, sessionCtx, serverResponse.toString());
+                starttlsState = StarttlsState.STARTTLS_FAILURE;
             }
             break;
 
