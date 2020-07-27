@@ -14,6 +14,9 @@ import org.slf4j.Logger;
 import com.yahoo.smtpnio.async.client.SmtpAsyncSession.DebugMode;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
+import com.yahoo.smtpnio.async.netty.PlainReconnectGreetingHandler;
+import com.yahoo.smtpnio.async.netty.StarttlsEhloHandler;
+import com.yahoo.smtpnio.async.netty.StarttlsSessionHandler;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -125,7 +128,6 @@ public class SslDetectHandler extends ByteToMessageDecoder {
                         cause.getCause());
                 logger.error(SmtpAsyncClient.CONNECT_RESULT_REC, sessionId, sessionCtx, "failure", host, port, false, sniNames, ex);
                 sessionCreatedFuture.done(ex);
-                cleanup();
             }
         } else {
             logger.error("[{},{}] Connection failed due to encountering exception:{}.", sessionId, sessionCtx, cause);
