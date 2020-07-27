@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
 import com.yahoo.smtpnio.async.netty.SmtpClientConnectHandler;
+import com.yahoo.smtpnio.async.netty.SslDetectHandler;
 import com.yahoo.smtpnio.async.netty.SslHandlerBuilder;
 import com.yahoo.smtpnio.async.netty.StarttlsHandler;
 
@@ -131,7 +132,7 @@ public class SmtpAsyncClient {
      * @param debugOption the debugging option used
      * @param sessionCreatedFuture future containing the result of the request
      */
-    void createStarttlsSession(@Nonnull final SmtpAsyncSessionData sessionData, @Nonnull final SmtpAsyncSessionConfig config,
+    public void createStarttlsSession(@Nonnull final SmtpAsyncSessionData sessionData, @Nonnull final SmtpAsyncSessionConfig config,
             @Nonnull final SmtpAsyncSession.DebugMode debugOption, @Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture) {
         createSession(sessionData, config, debugOption, sessionCreatedFuture, false);
     }
@@ -197,10 +198,10 @@ public class SmtpAsyncClient {
                 switch (sessionMode) {
                 case SSL:
                     // handlers order in pipeline: IdleHandler, SslHandler, SslDetectHandler, other initializer handlers, SmtpClientConnectHandler
-                    pipeline.addAfter(IDLE_STATE_HANDLER_NAME, SslDetectHandler.HANDLER_NAME, new SslDetectHandler(sessionCount.get(), sessionData,
-                            config, LoggerFactory.getLogger(SslDetectHandler.class), debugOption, smtpAsyncClient, sessionCreatedFuture));
+                    pipeline.addFirst(SslDetectHandler.HANDLER_NAME, new SslDetectHandler(sessionCount.get(), sessionData, config,
+                            LoggerFactory.getLogger(SslDetectHandler.class), debugOption, smtpAsyncClient, sessionCreatedFuture));
                     final SslHandler sslHandler = SslHandlerBuilder.newBuilder(sslContext, ch.alloc(), host, port, sniNames).build();
-                    pipeline.addAfter(IDLE_STATE_HANDLER_NAME, SslHandlerBuilder.SSL_HANDLER, sslHandler);
+                    pipeline.addFirst(SslHandlerBuilder.SSL_HANDLER, sslHandler);
                     pipeline.addLast(SmtpClientConnectHandler.HANDLER_NAME, new SmtpClientConnectHandler(sessionCreatedFuture,
                             LoggerFactory.getLogger(SmtpClientConnectHandler.class), debugOption, sessionId, sessionCtx));
                     break;
