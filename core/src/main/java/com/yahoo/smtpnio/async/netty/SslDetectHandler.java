@@ -104,7 +104,7 @@ public class SslDetectHandler extends ByteToMessageDecoder {
         final Object sessionCtx = this.sessionData.getSessionContext();
         final boolean enableStarttls = this.sessionConfig.getEnableStarttls();
 
-        ctx.close();
+        close(ctx);
 
         // ssl failed, re-connect with plain connection
         if (cause.getCause() instanceof NotSslRecordException) {
