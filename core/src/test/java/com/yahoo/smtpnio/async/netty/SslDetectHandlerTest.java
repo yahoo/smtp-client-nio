@@ -71,7 +71,7 @@ public class SslDetectHandlerTest {
      * @throws IllegalAccessException will not throw in this test
      */
     @Test
-    public void testDecodeSuccessTraceOn() throws IllegalArgumentException, IllegalAccessException {
+    public void testDecodeSSLConnectionSuccess() throws IllegalArgumentException, IllegalAccessException {
         final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<>();
         final SmtpAsyncSessionConfig sessionConfig = new SmtpAsyncSessionConfig();
         final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 465, true).setSessionContext("myCtx")
@@ -112,7 +112,7 @@ public class SslDetectHandlerTest {
      * @throws IllegalAccessException will not throw in this test
      */
     @Test
-    public void testDecodeConnectionSuccessTraceOffDebugOn() throws IllegalArgumentException, IllegalAccessException {
+    public void testDecodeSSLConnectionSuccessDebugOn() throws IllegalArgumentException, IllegalAccessException {
         final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<>();
         final SmtpAsyncSessionConfig sessionConfig = new SmtpAsyncSessionConfig();
         final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 465, true).setSessionContext("myCtx")
@@ -153,7 +153,7 @@ public class SslDetectHandlerTest {
      * @throws IllegalAccessException will not throw in this test
      */
     @Test
-    public void testDecodeConnectionSuccessDebugOffTraceOff() throws IllegalArgumentException, IllegalAccessException {
+    public void testDecodeSSLConnectionSuccessDebugOff() throws IllegalArgumentException, IllegalAccessException {
         final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<>();
         final SmtpAsyncSessionConfig sessionConfig = new SmtpAsyncSessionConfig();
         final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 465, true).setSessionContext("myCtx")
@@ -194,7 +194,7 @@ public class SslDetectHandlerTest {
      * @throws IllegalAccessException will not throw in this test
      */
     @Test
-    public void testNotSslRecordExceptionCaughtStarttlsTraceOn() throws IllegalArgumentException, IllegalAccessException {
+    public void testNotSslRecordExceptionCaughtStarttls() throws IllegalArgumentException, IllegalAccessException {
         final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<>();
         final SmtpAsyncSessionConfig sessionConfig = new SmtpAsyncSessionConfig().setEnableStarttls(true);
         final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 465, true).setSessionContext("myCtx")
@@ -229,7 +229,7 @@ public class SslDetectHandlerTest {
     }
 
     /**
-     * Tests {@code exceptionCaught} method when NotSslRecordException is caught and debug is on.
+     * Tests {@code exceptionCaught} method when NotSslRecordException is caught with logger trace off but debug on.
      *
      * @throws IllegalArgumentException will not throw in this test
      * @throws InterruptedException will not throw in this test
@@ -237,7 +237,7 @@ public class SslDetectHandlerTest {
      * @throws IllegalAccessException will not throw in this test
      */
     @Test
-    public void testtNotSslRecordExceptionCaughtDebugOn()
+    public void testNotSslRecordExceptionCaughtDebugOn()
             throws InterruptedException, TimeoutException, IllegalArgumentException, IllegalAccessException {
         final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<>();
         final SmtpAsyncSessionConfig sessionConfig = new SmtpAsyncSessionConfig().setEnableStarttls(false);
@@ -275,7 +275,7 @@ public class SslDetectHandlerTest {
     }
 
     /**
-     * Tests {@code exceptionCaught} method when NotSslRecordException is caught and debug is off.
+     * Tests {@code exceptionCaught} method when NotSslRecordException is caught with both logger trace and debug off.
      *
      * @throws IllegalArgumentException will not throw in this test
      * @throws InterruptedException will not throw in this test

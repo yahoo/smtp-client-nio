@@ -66,7 +66,7 @@ public class SmtpAsyncClientException extends Exception {
         NOT_SSL_RECORD("Server replied non-ssl response during an ssl enabled connection."),
 
         /** Stattls fails. */
-        STARTTLS_FALIED("Failed to starttls");
+        STARTTLS_FALIED("Failed on starttls");
 
         /**
          * Constructor to add an error message for failure type belonging to this enum.

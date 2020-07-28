@@ -49,7 +49,7 @@ import io.netty.util.concurrent.GenericFutureListener;
  *
  * <li>3. process STARTLS response and upgrade plain connection to ssl connection.
  *
- * <li>4. wait for ssl connection completed, finish the session creation future if succeed, otherwise fails.
+ * <li>4. wait for ssl connection completed, finish the session future if ssl succeeds, otherwise fails.
  */
 public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
 
@@ -98,7 +98,7 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
 
         /**
          * Waiting for EHLO response, send STARTTLS when all responses are good and server has startTls capability. If server doesn't reply 250, try
-         * to send HELO as fallback, otherwise fails.
+         * to send HELO as fallback. If server reply is good but no startTls capability received, it fails the session future.
          */
         GET_EHLO_RESP,
 
@@ -142,9 +142,6 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
     /** Flag recording whether server has replied STARTTLS capability. */
     private boolean receivedStarttlsCapability;
 
-    /** Flag recording whether the session future should be failed. */
-    private boolean isSessionFutureFailed;
-
     /**
      * Initializes a {@link StarttlsHandler} to process greeting after plain re-connection.
      *
@@ -164,30 +161,28 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
         this.sessionData = sessionData;
         this.startTlsState = StartTlsState.GET_SERVER_GREETING;
         this.receivedStarttlsCapability = false;
-        this.isSessionFutureFailed = false;
     }
 
     @Override
     public void decode(@Nonnull final ChannelHandlerContext ctx, @Nonnull final SmtpResponse serverResponse, @Nonnull final List<Object> out) {
         final Channel channel = ctx.channel();
         final ChannelPipeline pipeline = ctx.pipeline();
+        boolean isSessionFutureFailed = false; // the session future should be failed in this call
 
         switch (this.startTlsState) {
         case GET_SERVER_GREETING:
-            // receive greeting and send EHLO
+            // check server greeting
             if (serverResponse.getCode().value() == SmtpResponse.Code.GREETING) {
                 channel.writeAndFlush(new ExtendedHelloCommand(EHLO_CLIENT_NAME).getCommandLineBytes());
                 this.startTlsState = StartTlsState.GET_EHLO_RESP;
             } else {
-                this.isSessionFutureFailed = true;
+                isSessionFutureFailed = true;
             }
             break;
 
         case GET_EHLO_RESP:
-            // receive EHLO responses and send STARTTLS
-            final String ehloRespMessage = serverResponse.getMessage();
-            // check STARTTLS capability
-            if (ehloRespMessage.equalsIgnoreCase(STARTTLS)) {
+            // check EHLO responses
+            if (serverResponse.getMessage().equalsIgnoreCase(STARTTLS)) {
                 this.receivedStarttlsCapability = true;
             }
 
@@ -196,7 +191,7 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
                 if (serverResponse.getCode().value() != Code.EHLO_SUCCESS) {
                     // EHLO fails, try HELO as fallback
                     channel.writeAndFlush(new HelloCommand(EHLO_CLIENT_NAME).getCommandLineBytes());
-                    receivedStarttlsCapability = false;
+                    receivedStarttlsCapability = false; // clear the state before try HELO
                     this.startTlsState = StartTlsState.GET_HELO_RESP;
                 } else if (this.receivedStarttlsCapability) {
                     // confirmed STARTTLS capability from server, send STARTTLS command
@@ -204,27 +199,25 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
                     this.startTlsState = StartTlsState.GET_STARTTLS_RESP;
                 } else {
                     // server doesn't reply STARTTLS capability
-                    this.isSessionFutureFailed = true;
+                    isSessionFutureFailed = true;
                 }
             }
             break;
 
         case GET_HELO_RESP:
-            // receive HELO responses and send STARTTLS
-            final String heloRespMessage = serverResponse.getMessage();
-            // check STARTTLS capability
-            if (heloRespMessage.equalsIgnoreCase(STARTTLS)) {
+            // check HELO responses
+            if (serverResponse.getMessage().equalsIgnoreCase(STARTTLS)) {
                 this.receivedStarttlsCapability = true;
             }
 
             if (serverResponse.isLastLineResponse()) {
-                if (this.receivedStarttlsCapability) {
+                if (serverResponse.getCode().value() != Code.EHLO_SUCCESS || !this.receivedStarttlsCapability) {
+                    // HELO fails or didn't receive STARTTLS capability
+                    isSessionFutureFailed = true;
+                } else {
                     // confirmed STARTTLS capability from server, send STARTTLS command
                     channel.writeAndFlush(new StarttlsCommand().getCommandLineBytes());
                     this.startTlsState = StartTlsState.GET_STARTTLS_RESP;
-                } else {
-                    // server doesn't reply STARTTLS capability
-                    this.isSessionFutureFailed = true;
                 }
             }
             break;
@@ -247,10 +240,10 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
                     sslHandler.handshakeFuture().addListener(new SSLHandShakeCompleteListener(createSessionResponse, ctx));
                     ctx.pipeline().addFirst(SslHandlerBuilder.SSL_HANDLER, sslHandler);
                 } catch (final SSLException e) {
-                    this.isSessionFutureFailed = true;
+                    isSessionFutureFailed = true;
                 }
             } else {
-                this.isSessionFutureFailed = true;
+                isSessionFutureFailed = true;
             }
             break;
 
@@ -260,9 +253,10 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
         }
 
         // close channel and clean up if startTls failed
-        if (this.isSessionFutureFailed) {
-            this.logger.error("[{},{}] startTls failed, server response: {}", sessionId, sessionCtx, serverResponse.toString());
-            handleSessionFailed(ctx, new SmtpAsyncClientException(FailureType.STARTTLS_FALIED, sessionId, sessionCtx, serverResponse.toString()));
+        if (isSessionFutureFailed) {
+            this.logger.error("[{},{}] startTls failed, server response: {}", this.sessionId, this.sessionCtx, serverResponse.toString());
+            handleSessionFailed(ctx,
+                    new SmtpAsyncClientException(FailureType.STARTTLS_FALIED, this.sessionId, this.sessionCtx, serverResponse.toString()));
         }
     }
 

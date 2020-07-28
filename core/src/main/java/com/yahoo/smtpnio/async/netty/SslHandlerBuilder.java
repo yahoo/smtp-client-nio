@@ -47,7 +47,7 @@ public final class SslHandlerBuilder {
     private final Collection<String> sniNames;
 
     /**
-     * Initialize an SslHandlerBuilder object used to build {@link SslHanlder}.
+     * Initialize an SslHandlerBuilder object used to build {@link SslHandler}.
      *
      * @param sslContext SslContext used to create SslHandler
      * @param alloc allocator for ByteBuf objects
@@ -65,14 +65,14 @@ public final class SslHandlerBuilder {
     }
 
     /**
-     * Creates a new SslHandlerBuilder object used to build {@link SslHanlder}.
+     * Creates a new SslHandlerBuilder object used to build {@link SslHandler}.
      *
      * @param sslContext SslContext used to create SslHandler
      * @param alloc allocator for ByteBuf objects
      * @param host host name of server
      * @param port port of server
      * @param sniNames collection of SNI names
-     * @return a SslHandlerBuilder object used to build {@link SslHanlder}
+     * @return a SslHandlerBuilder object used to build {@link SslHandler}
      */
     public static SslHandlerBuilder newBuilder(@Nonnull final SslContext sslContext, @Nonnull final ByteBufAllocator alloc,
             @Nonnull final String host, final int port, @Nullable final Collection<String> sniNames) {
@@ -80,7 +80,7 @@ public final class SslHandlerBuilder {
     }
 
     /**
-     * Create a new {@link SslHanlder} for decryption/encryption.
+     * Create a new {@link SslHandler} for decryption/encryption.
      *
      * @return an Sslhandler to process ssl connection
      */
