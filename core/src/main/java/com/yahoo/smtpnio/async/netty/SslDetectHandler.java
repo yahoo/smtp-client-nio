@@ -18,15 +18,11 @@ import com.yahoo.smtpnio.async.client.SmtpAsyncSession.DebugMode;
 import com.yahoo.smtpnio.async.client.SmtpAsyncSessionConfig;
 import com.yahoo.smtpnio.async.client.SmtpAsyncSessionData;
 import com.yahoo.smtpnio.async.client.SmtpFuture;
-import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
-import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.ssl.NotSslRecordException;
-import io.netty.handler.timeout.IdleState;
-import io.netty.handler.timeout.IdleStateEvent;
 
 /**
  * This handler detects whether native SSL is available for this connection. If {@link NotSslRecordException} is caught, SSL is not available, fall
@@ -38,7 +34,7 @@ public class SslDetectHandler extends ByteToMessageDecoder {
 
     /** Debug record string template for Ssl detection. */
     private static final String SSL_DETECT_REC = "[{},{}] finish checking native SSL availability. "
-            + "result={}, host={}, port={}, sslEnabled={}, startTlsEnabled={}, sniNames={}";
+            + "result={}, host={}, port={}, sslEnabled={}, sniNames={}";
 
     /** Session Id. */
     private final long sessionId;
@@ -89,7 +85,7 @@ public class SslDetectHandler extends ByteToMessageDecoder {
         // ssl succeeds
         if (this.logger.isTraceEnabled() || this.logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
             this.logger.debug(SSL_DETECT_REC, this.sessionId, this.sessionData.getSessionContext(), "Available", this.sessionData.getHost(),
-                    this.sessionData.getPort(), true, sessionConfig.getEnableStarttls(), this.sessionData.getSniNames());
+                    this.sessionData.getPort(), true, this.sessionData.getSniNames());
         }
         ctx.pipeline().remove(this);
         cleanup();
@@ -102,48 +98,16 @@ public class SslDetectHandler extends ByteToMessageDecoder {
         final int port = this.sessionData.getPort();
         final Collection<String> sniNames = this.sessionData.getSniNames();
         final Object sessionCtx = this.sessionData.getSessionContext();
-        final boolean enableStarttls = this.sessionConfig.getEnableStarttls();
-
-        close(ctx);
 
         // ssl failed, re-connect with plain connection
         if (cause.getCause() instanceof NotSslRecordException) {
-
-            if (this.logger.isTraceEnabled() || this.logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
-                this.logger.debug(SSL_DETECT_REC, this.sessionId, sessionCtx, "Not available", host, port, true, enableStarttls, sniNames);
-            }
-
+            close(ctx);
             // if startTls is enbaled, try to create a new connection without ssl
-            if (enableStarttls) {
-                this.smtpAsyncClient.createStarttlsSession(this.sessionData, this.sessionConfig, this.logOpt, this.sessionCreatedFuture);
-            } else {
-                // if startTls is not enabled, finish the future with exception
-                final SmtpAsyncClientException ex = new SmtpAsyncClientException(SmtpAsyncClientException.FailureType.NOT_SSL_RECORD,
-                        cause.getCause());
-                this.logger.error(SmtpAsyncClient.CONNECT_RESULT_REC, this.sessionId, sessionCtx, "failure", host, port, false, sniNames, ex);
-                this.sessionCreatedFuture.done(ex);
+            this.smtpAsyncClient.createStarttlsSession(this.sessionData, this.sessionConfig, this.logOpt, this.sessionCreatedFuture);
+            if (this.logger.isTraceEnabled() || this.logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
+                this.logger.debug(SSL_DETECT_REC, this.sessionId, sessionCtx, "Not available", host, port, true, sniNames);
             }
-        } else {
-            this.logger.error("[{},{}] Connection failed due to encountering exception:{}.", this.sessionId, sessionCtx, cause);
-            this.sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEPTION, cause, this.sessionId, sessionCtx));
-
-        }
-        cleanup();
-    }
-
-    @Override
-    public void userEventTriggered(@Nonnull final ChannelHandlerContext ctx, @Nonnull final Object msg) {
-        if (msg instanceof IdleStateEvent) { // Handle the IdleState if needed
-            final IdleStateEvent event = (IdleStateEvent) msg;
-            if (event.state() == IdleState.READER_IDLE) {
-                final Object sessionCtx = sessionData.getSessionContext();
-                this.logger.error("[{},{}] Connection failed due to taking longer than configured allowed time.", this.sessionId, sessionCtx);
-                this.sessionCreatedFuture
-                        .done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEED_IDLE_MAX, this.sessionId, sessionCtx));
-                // closing the channel if server is not responding for max read timeout limit
-                close(ctx);
-                cleanup();
-            }
+            cleanup();
         }
     }
 

@@ -56,7 +56,7 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
     /**
      * This listener is used to check if ssl connection succeeds.
      */
-    private class SSLHandShakeCompleteListener implements GenericFutureListener<io.netty.util.concurrent.Future<? super Channel>> {
+    class SSLHandShakeCompleteListener implements GenericFutureListener<io.netty.util.concurrent.Future<? super Channel>> {
 
         /** Response of session creation containing {@link SmtpAsyncSession} and server greeting message. */
         @Nonnull
@@ -71,8 +71,8 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
          * @param createSessionResponse response of session creation.
          * @param ctx handler context.
          */
-        public SSLHandShakeCompleteListener(
-                @Nonnull final SmtpAsyncCreateSessionResponse createSessionResponse, @Nonnull final ChannelHandlerContext ctx) {
+        public SSLHandShakeCompleteListener(@Nonnull final SmtpAsyncCreateSessionResponse createSessionResponse,
+                @Nonnull final ChannelHandlerContext ctx) {
             this.createSessionResponse = createSessionResponse;
             this.ctx = ctx;
         }
@@ -255,7 +255,8 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
             break;
 
         default:
-            break;
+            // shouldn't reach here
+            ctx.fireExceptionCaught(new SmtpAsyncClientException(FailureType.STARTTLS_FALIED, "Invalid state"));
         }
 
         // close channel and clean up if startTls failed
