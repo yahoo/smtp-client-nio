@@ -197,9 +197,11 @@ public class SmtpAsyncClient {
                 // add session specific handlers
                 switch (sessionMode) {
                 case SSL:
-                    // handlers order in pipeline: IdleHandler, SslHandler, SslDetectHandler, other initializer handlers, SmtpClientConnectHandler
-                    pipeline.addFirst(SslDetectHandler.HANDLER_NAME, new SslDetectHandler(sessionCount.get(), sessionData, config,
-                            LoggerFactory.getLogger(SslDetectHandler.class), debugOption, smtpAsyncClient, sessionCreatedFuture));
+                    // only add SslDetectHandler if starttls is enabled
+                    if (isStarttls) {
+                        pipeline.addFirst(SslDetectHandler.HANDLER_NAME, new SslDetectHandler(sessionCount.get(), sessionData, config,
+                                LoggerFactory.getLogger(SslDetectHandler.class), debugOption, smtpAsyncClient, sessionCreatedFuture));
+                    }
                     final SslHandler sslHandler = SslHandlerBuilder.newBuilder(sslContext, ch.alloc(), host, port, sniNames).build();
                     pipeline.addFirst(SslHandlerBuilder.SSL_HANDLER, sslHandler);
                     pipeline.addLast(SmtpClientConnectHandler.HANDLER_NAME, new SmtpClientConnectHandler(sessionCreatedFuture,
