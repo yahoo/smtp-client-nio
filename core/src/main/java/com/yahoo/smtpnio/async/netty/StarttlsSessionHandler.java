@@ -43,9 +43,6 @@ public class StarttlsSessionHandler extends MessageToMessageDecoder<SmtpResponse
     /** Literal for the name registered in pipeline. */
     public static final String HANDLER_NAME = "StarttlsSessionHandler";
 
-    /** Handler name for idle sate handler. */
-    private static final String IDLE_STATE_HANDLER_NAME = "idleStateHandler";
-
     /** Future for the created session. */
     private SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture;
 
@@ -113,7 +110,7 @@ public class StarttlsSessionHandler extends MessageToMessageDecoder<SmtpResponse
                         }
                     }
                 });
-                ctx.pipeline().addAfter(IDLE_STATE_HANDLER_NAME, SmtpAsyncClient.SSL_HANDLER, sslHandler);
+                ctx.pipeline().addFirst(SmtpAsyncClient.SSL_HANDLER, sslHandler);
                 if (logger.isTraceEnabled() || logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
                     logger.debug("[{},{}] Starttls was successful. Connection is now encrypted.", sessionId, sessionCtx);
                 }

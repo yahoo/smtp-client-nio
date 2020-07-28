@@ -64,9 +64,6 @@ public class SmtpAsyncClient {
     public static final String RE_CONNECTION_REC = "[{},{}] try starttls. Re-connecting with non-ssl. "
             + "host={}, port={}, sslEnabled={}, startTlsEnabled={}, sniNames={}";
 
-    /** Handler name for idle sate handler. */
-    private static final String IDLE_STATE_HANDLER_NAME = "idleStateHandler";
-
     /** The SSL context. */
     private final SslContext sslContext;
 

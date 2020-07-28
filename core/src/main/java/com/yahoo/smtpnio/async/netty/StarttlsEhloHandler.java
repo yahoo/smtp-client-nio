@@ -11,16 +11,15 @@ import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 
 import com.yahoo.smtpnio.async.client.SmtpAsyncCreateSessionResponse;
-import com.yahoo.smtpnio.async.client.SmtpAsyncSession;
 import com.yahoo.smtpnio.async.client.SmtpAsyncSession.DebugMode;
 import com.yahoo.smtpnio.async.client.SmtpAsyncSessionData;
 import com.yahoo.smtpnio.async.client.SmtpFuture;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
+import com.yahoo.smtpnio.async.request.HelloCommand;
 import com.yahoo.smtpnio.async.request.StarttlsCommand;
 import com.yahoo.smtpnio.async.response.SmtpResponse;
 
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.timeout.IdleState;
@@ -28,15 +27,27 @@ import io.netty.handler.timeout.IdleStateEvent;
 
 /**
  * This handler receives EHLO response sent by {@link PlainReconnectGreetingHandler}. If the response code is 2xx, it will send STARTTLS command to
- * notify server for starting TLS connection.
+ * notify server for starting TLS connection. If EHLO response fails, try HELO as fallback.
  */
 public class StarttlsEhloHandler extends MessageToMessageDecoder<SmtpResponse> {
+
+    /** This enum indicates different state regarding of STARTTLS capability. */
+    private enum StartTlsCapabilityState {
+        /** EHLO has been sent, no STARTTLS capability received. */
+        EHLO_SENT,
+
+        /** STARTTLS capability received. */
+        RECEIVE_STARTTLS,
+
+        /** HELO has been sent, no STARTTLS capability received. */
+        HELO_SENT;
+    }
 
     /** Literal for the name registered in pipeline. */
     public static final String HANDLER_NAME = "StarttlsEhloHandler";
 
     /** Literal for the STARTTLS capability. */
-    public static final String STARTTLS = "STARTTLS";
+    public static final String STARTTLS = "STARTTLS\r\n";
 
     /** Future for the created session. */
     private SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture;
@@ -56,8 +67,8 @@ public class StarttlsEhloHandler extends MessageToMessageDecoder<SmtpResponse> {
     /** SessionData object containing information about the connection. */
     private SmtpAsyncSessionData sessionData;
 
-    /** Flag used to record whether receive STARTTLS capability. */
-    private boolean hasStarttlsCapability;
+    /** State of checking STARTTLS capability. */
+    private StartTlsCapabilityState startTlsCapabilityState;
 
     /**
      * Initialize an StarttlsEhloHandler for receiving EHLO response and send STARTTLS command.
@@ -76,40 +87,44 @@ public class StarttlsEhloHandler extends MessageToMessageDecoder<SmtpResponse> {
         this.sessionCtx = sessionData.getSessionContext();
         this.sessionId = sessionId;
         this.sessionData = sessionData;
-        this.hasStarttlsCapability = false;
+        this.startTlsCapabilityState = StartTlsCapabilityState.EHLO_SENT;
     }
 
     @Override
     public void decode(@Nonnull final ChannelHandlerContext ctx, @Nonnull final SmtpResponse serverResponse, @Nonnull final List<Object> out) {
         final String message = serverResponse.getMessage();
         // check STARTTLS capability
-        if (message.length() >= STARTTLS.length() && message.substring(0, STARTTLS.length()).equalsIgnoreCase(STARTTLS)) {
-            hasStarttlsCapability = true;
+        if (message.equalsIgnoreCase(STARTTLS)) {
+            this.startTlsCapabilityState = StartTlsCapabilityState.RECEIVE_STARTTLS;
         }
 
         if (serverResponse.isLastLineResponse()) {
-            if (hasStarttlsCapability) {
-                Channel channel = ctx.channel();
-                channel.writeAndFlush(new StarttlsCommand().getCommandLineBytes());
+            switch (startTlsCapabilityState) {
+            case RECEIVE_STARTTLS:
+                ctx.channel().writeAndFlush(new StarttlsCommand().getCommandLineBytes());
                 ctx.pipeline().replace(this, StarttlsSessionHandler.HANDLER_NAME,
                         new StarttlsSessionHandler(sessionCreatedFuture, logger, logOpt, sessionId, sessionData));
-                if (logger.isTraceEnabled() || logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
-                    logger.debug("[{},{}] EHLO response after reconnection was successful. Trying to sent STARTTLS.", sessionId, sessionCtx);
-                }
-            } else {
+                cleanup();
+                break;
+
+            case EHLO_SENT:
+                // try HELO as fallback
+                ctx.channel().writeAndFlush(new HelloCommand(sessionCtx.toString()).getCommandLineBytes());
+                this.startTlsCapabilityState = StartTlsCapabilityState.HELO_SENT;
+                break;
+
+            case HELO_SENT:
                 // server doesn't reply STARTTLS capability
                 logger.error("[{},{}] Server doesn't support starttls: host:{}, port:{}", sessionId, sessionCtx, sessionData.getHost(),
                         sessionData.getPort());
                 sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEPTION, sessionId, sessionCtx));
                 close(ctx);
+                cleanup();
+                break;
+
+            default:
+                break;
             }
-            cleanup();
-        } else if (serverResponse.getReplyType() != SmtpResponse.ReplyType.POSITIVE_COMPLETION) {
-            // receive a bad response, close the connection
-            logger.error("[{},{}] Receive bad response after sending EHLO: {}", sessionId, sessionCtx, serverResponse.toString());
-            sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEPTION, sessionId, sessionCtx));
-            close(ctx);
-            cleanup();
         }
     }
 
