@@ -2,7 +2,7 @@
  * Copyright Verizon Media
  * Licensed under the terms of the Apache 2.0 license. See LICENSE file in project root for terms.
  */
-package com.yahoo.smtpnio.async.netty;
+package com.yahoo.smtpnio.async.client;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -20,13 +20,10 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.yahoo.smtpnio.async.client.SmtpAsyncCreateSessionResponse;
 import com.yahoo.smtpnio.async.client.SmtpAsyncSession.DebugMode;
-import com.yahoo.smtpnio.async.client.SmtpAsyncSessionData;
-import com.yahoo.smtpnio.async.client.SmtpFuture;
+import com.yahoo.smtpnio.async.client.StarttlsHandler.SSLHandShakeCompleteListener;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
-import com.yahoo.smtpnio.async.netty.StarttlsHandler.SSLHandShakeCompleteListener;
 import com.yahoo.smtpnio.async.response.SmtpResponse;
 
 import io.netty.channel.Channel;
@@ -92,10 +89,10 @@ public class StarttlsHandlerTest {
         handler.decode(ctx, new SmtpResponse("250-STARTTLS\r\n"), out);
         handler.decode(ctx, new SmtpResponse("250 PIPELINE"), out);
         // receive starttls greeting and add SslHandler
-        handler.decode(ctx, new SmtpResponse("220 Hello there"), out);
+        final SmtpResponse smtpResponse = new SmtpResponse("220 Hello there");
+        handler.decode(ctx, smtpResponse, out);
         // ssl connection is successful
-        final SmtpAsyncCreateSessionResponse createSessionResponse = Mockito.mock(SmtpAsyncCreateSessionResponse.class);
-        final SSLHandShakeCompleteListener sslListener = handler.new SSLHandShakeCompleteListener(createSessionResponse, ctx);
+        final SSLHandShakeCompleteListener sslListener = handler.new SSLHandShakeCompleteListener(smtpResponse, ctx);
         final Future<Channel> sslConnectionFuture = Mockito.mock(Future.class);
         Mockito.when(sslConnectionFuture.isSuccess()).thenReturn(true);
         sslListener.operationComplete(sslConnectionFuture);
@@ -137,11 +134,10 @@ public class StarttlsHandlerTest {
         handler.decode(ctx, new SmtpResponse("250-STARTTLS\r\n"), out);
         handler.decode(ctx, new SmtpResponse("250 PIPELINE"), out);
         // receive starttls greeting and add SslHandler
-        handler.decode(ctx, new SmtpResponse("220 Hello there"), out);
-
+        final SmtpResponse smtpResponse = new SmtpResponse("220 Hello there");
+        handler.decode(ctx, smtpResponse, out);
         // ssl connection is successful
-        final SmtpAsyncCreateSessionResponse createSessionResponse = Mockito.mock(SmtpAsyncCreateSessionResponse.class);
-        final SSLHandShakeCompleteListener sslListener = handler.new SSLHandShakeCompleteListener(createSessionResponse, ctx);
+        final SSLHandShakeCompleteListener sslListener = handler.new SSLHandShakeCompleteListener(smtpResponse, ctx);
         final Future<Channel> sslConnectionFuture = Mockito.mock(Future.class);
         Mockito.when(sslConnectionFuture.isSuccess()).thenReturn(true);
         sslListener.operationComplete(sslConnectionFuture);
@@ -181,10 +177,10 @@ public class StarttlsHandlerTest {
         handler.decode(ctx, new SmtpResponse("250-STARTTLS\r\n"), out);
         handler.decode(ctx, new SmtpResponse("250 PIPELINE"), out);
         // receive starttls greeting and add SslHandler
-        handler.decode(ctx, new SmtpResponse("220 Hello there"), out);
+        final SmtpResponse smtpResponse = new SmtpResponse("220 Hello there");
+        handler.decode(ctx, smtpResponse, out);
         // ssl connection is successful
-        final SmtpAsyncCreateSessionResponse createSessionResponse = Mockito.mock(SmtpAsyncCreateSessionResponse.class);
-        final SSLHandShakeCompleteListener sslListener = handler.new SSLHandShakeCompleteListener(createSessionResponse, ctx);
+        final SSLHandShakeCompleteListener sslListener = handler.new SSLHandShakeCompleteListener(smtpResponse, ctx);
         final Future<Channel> sslConnectionFuture = Mockito.mock(Future.class);
         Mockito.when(sslConnectionFuture.isSuccess()).thenReturn(true);
         sslListener.operationComplete(sslConnectionFuture);
@@ -231,8 +227,8 @@ public class StarttlsHandlerTest {
         Mockito.verify(channel, Mockito.times(0)).writeAndFlush(Mockito.anyObject());
         Assert.assertTrue(smtpFuture.isDone(), "Future should be done");
 
-        Mockito.verify(logger, Mockito.times(1)).error(Mockito.eq("[{},{}] startTls failed, server response: {}"), Mockito.eq(SESSION_ID),
-                Mockito.eq("myCtx"), Mockito.eq(errMsg));
+        Mockito.verify(logger, Mockito.times(1)).error(Mockito.eq("[{},{}] startTls failed."), Mockito.eq(SESSION_ID), Mockito.eq("myCtx"),
+                Mockito.isA(SmtpAsyncClientException.class));
 
         Assert.assertTrue(smtpFuture.isDone(), "Future should be done");
         ExecutionException ex = null;
@@ -293,8 +289,8 @@ public class StarttlsHandlerTest {
         Mockito.verify(channel, Mockito.times(2)).writeAndFlush(Mockito.anyObject());
         Assert.assertTrue(smtpFuture.isDone(), "Future should be done");
 
-        Mockito.verify(logger, Mockito.times(1)).error(Mockito.eq("[{},{}] startTls failed, server response: {}"), Mockito.eq(SESSION_ID),
-                Mockito.eq("myCtx"), Mockito.eq(errMsg));
+        Mockito.verify(logger, Mockito.times(1)).error(Mockito.eq("[{},{}] startTls failed."), Mockito.eq(SESSION_ID), Mockito.eq("myCtx"),
+                Mockito.isA(SmtpAsyncClientException.class));
 
         Assert.assertTrue(smtpFuture.isDone(), "Future should be done");
         ExecutionException ex = null;
@@ -351,70 +347,8 @@ public class StarttlsHandlerTest {
         final SmtpResponse resp = new SmtpResponse(errMsg);
         handler.decode(ctx, resp, out);
 
-        Mockito.verify(logger, Mockito.times(1)).error(Mockito.eq("[{},{}] startTls failed, server response: {}"), Mockito.eq(SESSION_ID),
-                Mockito.eq("myCtx"), Mockito.eq(errMsg));
-
-        Assert.assertTrue(smtpFuture.isDone(), "Future should be done");
-        ExecutionException ex = null;
-        try {
-            smtpFuture.get(5, TimeUnit.MILLISECONDS);
-        } catch (final ExecutionException ee) {
-            ex = ee;
-        }
-
-        Assert.assertNotNull(ex, "Expect exception to be thrown.");
-        Assert.assertNotNull(ex.getCause(), "Expect cause.");
-        Assert.assertEquals(ex.getCause().getClass(), SmtpAsyncClientException.class, "Expected result mismatched.");
-        Mockito.verify(ctx, Mockito.times(1)).close();
-        Mockito.verify(channel, Mockito.times(1)).isActive();
-
-        // Verify if cleanup happened correctly.
-        for (final Field field : fieldsToCheck) {
-            Assert.assertNull(field.get(handler), "Cleanup should set " + field.getName() + " as null");
-        }
-    }
-
-    /**
-     * Tests {@code decode} method failed on no STARTTLS capability in HELO responses.
-     *
-     * @throws IllegalArgumentException will not throw in this test
-     * @throws IllegalAccessException will not throw in this test
-     * @throws SmtpAsyncClientException will not throw in this test
-     * @throws InterruptedException will not throw in this test
-     * @throws TimeoutException will not throw in this test
-     */
-    @Test
-    public void testDecodeFailNoStarttlsCapabilityHELO()
-            throws IllegalArgumentException, IllegalAccessException, SmtpAsyncClientException, InterruptedException, TimeoutException {
-        final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<>();
-        final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 465, true).setSessionContext("myCtx")
-                .build();
-        final Logger logger = Mockito.mock(Logger.class);
-
-        final StarttlsHandler handler = new StarttlsHandler(smtpFuture, logger, DebugMode.DEBUG_ON, SESSION_ID, sessionData);
-
-        final ChannelHandlerContext ctx = Mockito.mock(ChannelHandlerContext.class);
-        final ChannelPipeline pipeline = Mockito.mock(ChannelPipeline.class);
-        final Channel channel = Mockito.mock(Channel.class);
-        Mockito.when(ctx.pipeline()).thenReturn(pipeline);
-        Mockito.when(ctx.channel()).thenReturn(channel);
-        Mockito.when(channel.isActive()).thenReturn(true);
-        Mockito.when(logger.isTraceEnabled()).thenReturn(true);
-        final List<Object> out = new ArrayList<>();
-
-        // receive server greeting and send EHLO
-        handler.decode(ctx, new SmtpResponse("220 Hello there"), out);
-        // receive bad EHLO response, send HELO
-        handler.decode(ctx, new SmtpResponse("500 Command not recognized"), out);
-        // receive bad HELO response
-        final String errMsg = "250 PIPELINE";
-        final SmtpResponse resp = new SmtpResponse(errMsg);
-        handler.decode(ctx, resp, out);
-        Mockito.verify(channel, Mockito.times(2)).writeAndFlush(Mockito.anyObject());
-        Assert.assertTrue(smtpFuture.isDone(), "Future should be done");
-
-        Mockito.verify(logger, Mockito.times(1)).error(Mockito.eq("[{},{}] startTls failed, server response: {}"), Mockito.eq(SESSION_ID),
-                Mockito.eq("myCtx"), Mockito.eq(errMsg));
+        Mockito.verify(logger, Mockito.times(1)).error(Mockito.eq("[{},{}] startTls failed."), Mockito.eq(SESSION_ID), Mockito.eq("myCtx"),
+                Mockito.isA(SmtpAsyncClientException.class));
 
         Assert.assertTrue(smtpFuture.isDone(), "Future should be done");
         ExecutionException ex = null;
@@ -473,8 +407,8 @@ public class StarttlsHandlerTest {
         final SmtpResponse resp = new SmtpResponse(errMsg);
         handler.decode(ctx, resp, out);
 
-        Mockito.verify(logger, Mockito.times(1)).error(Mockito.eq("[{},{}] startTls failed, server response: {}"), Mockito.eq(SESSION_ID),
-                Mockito.eq("myCtx"), Mockito.eq(errMsg));
+        Mockito.verify(logger, Mockito.times(1)).error(Mockito.eq("[{},{}] startTls failed."), Mockito.eq(SESSION_ID), Mockito.eq("myCtx"),
+                Mockito.isA(SmtpAsyncClientException.class));
 
         Assert.assertTrue(smtpFuture.isDone(), "Future should be done");
         ExecutionException ex = null;
@@ -526,17 +460,18 @@ public class StarttlsHandlerTest {
         handler.decode(ctx, new SmtpResponse("250-STARTTLS\r\n"), out);
         handler.decode(ctx, new SmtpResponse("250 PIPELINE"), out);
         // receive starttls greeting and add SslHandler
-        handler.decode(ctx, new SmtpResponse("220 Hello there"), out);
+        final SmtpResponse smtpResponse = new SmtpResponse("220 Hello there");
+        handler.decode(ctx, smtpResponse, out);
         // ssl connection is successful
-        final SmtpAsyncCreateSessionResponse createSessionResponse = Mockito.mock(SmtpAsyncCreateSessionResponse.class);
-        final SSLHandShakeCompleteListener sslListener = handler.new SSLHandShakeCompleteListener(createSessionResponse, ctx);
+        final SSLHandShakeCompleteListener sslListener = handler.new SSLHandShakeCompleteListener(smtpResponse, ctx);
         final Future<Channel> sslConnectionFuture = Mockito.mock(Future.class);
         Mockito.when(sslConnectionFuture.isSuccess()).thenReturn(false);
         sslListener.operationComplete(sslConnectionFuture);
 
         Mockito.verify(pipeline, Mockito.times(1)).remove(handler);
         Assert.assertTrue(smtpFuture.isDone(), "Future should be done");
-        Mockito.verify(logger, Mockito.times(1)).error("[{},{}] SslConnection failed after adding SslHandler.", SESSION_ID, "myCtx");
+        Mockito.verify(logger, Mockito.times(1)).error(Mockito.eq("[{},{}] startTls failed."), Mockito.eq(SESSION_ID), Mockito.eq("myCtx"),
+                Mockito.isA(SmtpAsyncClientException.class));
         ExecutionException ex = null;
         try {
             smtpFuture.get(5, TimeUnit.MILLISECONDS);
@@ -595,9 +530,8 @@ public class StarttlsHandlerTest {
         Mockito.verify(ctx, Mockito.times(1)).close();
         Mockito.verify(channel, Mockito.times(1)).isActive();
 
-        Mockito.verify(logger, Mockito.times(1)).error(Mockito.eq(
-                "[{},{}] Starttls Connection failed due to encountering exception:{}."),
-                Mockito.eq(SESSION_ID), Mockito.eq("myCtx"), Mockito.isA(TimeoutException.class));
+        Mockito.verify(logger, Mockito.times(1)).error(Mockito.eq("[{},{}] startTls failed."), Mockito.eq(SESSION_ID), Mockito.eq("myCtx"),
+                Mockito.isA(SmtpAsyncClientException.class));
 
         for (final Field field : fieldsToCheck) {
             Assert.assertNull(field.get(handler), "Cleanup should set " + field.getName() + " as null");
@@ -684,9 +618,8 @@ public class StarttlsHandlerTest {
         Mockito.verify(ctx, Mockito.times(1)).close();
         Mockito.verify(channel, Mockito.times(1)).isActive();
 
-        Mockito.verify(logger, Mockito.times(1)).error(
-                Mockito.eq("[{},{}] Starttls Connection failed due to taking longer than configured allowed time."), Mockito.eq(SESSION_ID),
-                Mockito.eq("myCtx"));
+        Mockito.verify(logger, Mockito.times(1)).error(Mockito.eq("[{},{}] startTls failed."), Mockito.eq(SESSION_ID), Mockito.eq("myCtx"),
+                Mockito.isA(SmtpAsyncClientException.class));
 
         for (final Field field : fieldsToCheck) {
             Assert.assertNull(field.get(handler), "Cleanup should set " + field.getName() + " as null");

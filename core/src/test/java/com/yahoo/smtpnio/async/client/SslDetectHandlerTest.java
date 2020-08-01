@@ -2,7 +2,7 @@
  * Copyright Verizon Media
  * Licensed under the terms of the Apache 2.0 license. See LICENSE file in project root for terms.
  */
-package com.yahoo.smtpnio.async.netty;
+package com.yahoo.smtpnio.async.client;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -20,12 +20,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.yahoo.smtpnio.async.client.SmtpAsyncClient;
-import com.yahoo.smtpnio.async.client.SmtpAsyncCreateSessionResponse;
 import com.yahoo.smtpnio.async.client.SmtpAsyncSession.DebugMode;
-import com.yahoo.smtpnio.async.client.SmtpAsyncSessionConfig;
-import com.yahoo.smtpnio.async.client.SmtpAsyncSessionData;
-import com.yahoo.smtpnio.async.client.SmtpFuture;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;

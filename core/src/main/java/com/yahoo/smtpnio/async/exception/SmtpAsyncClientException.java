@@ -26,6 +26,9 @@ public class SmtpAsyncClientException extends Exception {
         /** Timeout on server connection. */
         CONNECTION_FAILED_EXCEED_IDLE_MAX("Timeout on server connection."),
 
+        /** Connection failed due to ssl error. */
+        CONNECTION_SSL_EXCEPTION("SSL error during connection."),
+
         /** Connection inactive. */
         CONNECTION_INACTIVE("Connection inactive."),
 

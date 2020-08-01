@@ -26,8 +26,6 @@ import org.testng.annotations.Test;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
 import com.yahoo.smtpnio.async.netty.SmtpClientConnectHandler;
-import com.yahoo.smtpnio.async.netty.SslDetectHandler;
-import com.yahoo.smtpnio.async.netty.StarttlsHandler;
 import com.yahoo.smtpnio.client.SmtpClientRespReader;
 import com.yahoo.smtpnio.command.SmtpClientRespDecoder;
 
@@ -56,16 +54,12 @@ public class SmtpAsyncClientTest {
     @Test
     public void testConstructor() {
         SmtpAsyncClient client = null;
-        try {
-            client = new SmtpAsyncClient(1);
-            Assert.assertNotNull(client, "Client was not successfully created");
-            final EventLoopGroup group = Mockito.mock(EventLoopGroup.class);
-            Whitebox.setInternalState(client, "group", group);
-            client.shutdown();
-            Mockito.verify(group, Mockito.times(1)).shutdownGracefully();
-        } catch (final SSLException ignored) {
-            Assert.assertNull(client, "client should be null if it fails to initialize");
-        }
+        client = new SmtpAsyncClient(1);
+        Assert.assertNotNull(client, "Client was not successfully created");
+        final EventLoopGroup group = Mockito.mock(EventLoopGroup.class);
+        Whitebox.setInternalState(client, "group", group);
+        client.shutdown();
+        Mockito.verify(group, Mockito.times(1)).shutdownGracefully();
     }
 
     /**
@@ -106,8 +100,8 @@ public class SmtpAsyncClientTest {
         Mockito.when(logger.isTraceEnabled()).thenReturn(false);
 
         final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
-        final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 993, true)
-                .setSessionContext("myCtx")
+        final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 993, true).setSessionContext(
+                "myCtx")
                 .build();
 
         final Future<SmtpAsyncCreateSessionResponse> future = client.createSession(sessionData, new SmtpAsyncSessionConfig(),
@@ -149,10 +143,14 @@ public class SmtpAsyncClientTest {
         final GenericFutureListener listener = listenerCaptor.getAllValues().get(0);
         listener.operationComplete(nettyConnectFuture);
         final ArgumentCaptor<ChannelHandler> handlerCaptorFirst = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(nettyPipeline, Mockito.times(2)).addFirst(Mockito.anyString(), handlerCaptorFirst.capture());
-        Assert.assertEquals(handlerCaptorFirst.getAllValues().size(), 2, "number of handlers mismatched.");
-        Assert.assertEquals(handlerCaptorFirst.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptorFirst.getAllValues().get(1).getClass(), SslHandler.class, "expected class mismatched.");
+        Mockito.verify(nettyPipeline, Mockito.times(1)).addFirst(Mockito.anyString(), handlerCaptorFirst.capture());
+        Assert.assertEquals(handlerCaptorFirst.getAllValues().size(), 1, "number of handlers mismatched.");
+        Assert.assertEquals(handlerCaptorFirst.getAllValues().get(0).getClass(), SslHandler.class, "expected class mismatched.");
+
+        final ArgumentCaptor<ChannelHandler> handlerCaptorAfter = ArgumentCaptor.forClass(ChannelHandler.class);
+        Mockito.verify(nettyPipeline, Mockito.times(1)).addAfter(Mockito.anyString(), Mockito.anyString(), handlerCaptorAfter.capture());
+        Assert.assertEquals(handlerCaptorAfter.getAllValues().size(), 1, "number of handlers mismatched.");
+        Assert.assertEquals(handlerCaptorAfter.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
 
         final ArgumentCaptor<ChannelHandler> handlerCaptorLast = ArgumentCaptor.forClass(ChannelHandler.class);
         Mockito.verify(nettyPipeline, Mockito.times(1)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
@@ -194,8 +192,8 @@ public class SmtpAsyncClientTest {
         final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 993, true).setSessionContext("myCtx")
                 .build();
 
-        final Future<SmtpAsyncCreateSessionResponse> future = client.createSession(sessionData,
-                new SmtpAsyncSessionConfig().setEnableStarttls(false),
+        final Future<SmtpAsyncCreateSessionResponse> future = client.createSession(sessionData, new SmtpAsyncSessionConfig().setEnableStarttls(
+                false),
                 SmtpAsyncSession.DebugMode.DEBUG_ON);
 
         Assert.assertNotNull(future, "The response future should not be null");
@@ -241,21 +239,13 @@ public class SmtpAsyncClientTest {
         final ArgumentCaptor<ChannelHandler> handlerCaptorLast = ArgumentCaptor.forClass(ChannelHandler.class);
         Mockito.verify(nettyPipeline, Mockito.times(1)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
         Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 1, "Unexpected count of ChannelHandler added.");
-        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), SmtpClientConnectHandler.class,
-                "expected class mismatched.");
+        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
         // verify if session level is on, whether debug call will be called
         // verify logging messages
-        Mockito.verify(logger, Mockito.times(1))
-                .debug(
-                        Mockito.eq("[{},{}] connect operation complete. result={}, host={}, port={}, sslEnabled={}, sniNames={}"),
-                        Mockito.eq(Long.valueOf(1)),
-                        Mockito.eq("myCtx"),
-                        Mockito.eq("success"),
-                        Mockito.eq("smtp.one.two.three.com"),
-                        Mockito.eq(993),
-                        Mockito.eq(true),
-                        Mockito.eq(null)
-                );
+        Mockito.verify(logger, Mockito.times(1)).debug(
+                Mockito.eq("[{},{}] connect operation complete. result={}, host={}, port={}, sslEnabled={}, sniNames={}"),
+                Mockito.eq(Long.valueOf(1)), Mockito.eq("myCtx"), Mockito.eq("success"), Mockito.eq("smtp.one.two.three.com"), Mockito.eq(993),
+                Mockito.eq(true), Mockito.eq(null));
 
         // Tests proper shutdown
         client.shutdown();
@@ -284,8 +274,8 @@ public class SmtpAsyncClientTest {
 
         final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
         final Future<SmtpAsyncCreateSessionResponse> future = client.createSession(
-               SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 993, false).build(),
-                new SmtpAsyncSessionConfig().setEnableStarttls(false), SmtpAsyncSession.DebugMode.DEBUG_ON);
+                SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 993, false).build(), new SmtpAsyncSessionConfig().setEnableStarttls(false),
+                SmtpAsyncSession.DebugMode.DEBUG_ON);
 
         Assert.assertNotNull(future, "The response future should not be null");
 
@@ -446,8 +436,8 @@ public class SmtpAsyncClientTest {
 
         final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
         final Future<SmtpAsyncCreateSessionResponse> future = client.createSession(
-               SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 993, true)
-                        .setSessionContext("myCtx").build(), new SmtpAsyncSessionConfig(), SmtpAsyncSession.DebugMode.DEBUG_OFF);
+                SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 993, true).setSessionContext("myCtx").build(), new SmtpAsyncSessionConfig(),
+                SmtpAsyncSession.DebugMode.DEBUG_OFF);
 
         Assert.assertNotNull(future, "The response future should not be null");
 
@@ -486,10 +476,14 @@ public class SmtpAsyncClientTest {
         final GenericFutureListener listener = listenerCaptor.getAllValues().get(0);
         listener.operationComplete(nettyConnectFuture);
         final ArgumentCaptor<ChannelHandler> handlerCaptorFirst = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(nettyPipeline, Mockito.times(2)).addFirst(Mockito.anyString(), handlerCaptorFirst.capture());
-        Assert.assertEquals(handlerCaptorFirst.getAllValues().size(), 2, "number of handlers mismatched.");
-        Assert.assertEquals(handlerCaptorFirst.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptorFirst.getAllValues().get(1).getClass(), SslHandler.class, "expected class mismatched.");
+        Mockito.verify(nettyPipeline, Mockito.times(1)).addFirst(Mockito.anyString(), handlerCaptorFirst.capture());
+        Assert.assertEquals(handlerCaptorFirst.getAllValues().size(), 1, "number of handlers mismatched.");
+        Assert.assertEquals(handlerCaptorFirst.getAllValues().get(0).getClass(), SslHandler.class, "expected class mismatched.");
+
+        final ArgumentCaptor<ChannelHandler> handlerCaptorAfter = ArgumentCaptor.forClass(ChannelHandler.class);
+        Mockito.verify(nettyPipeline, Mockito.times(1)).addAfter(Mockito.anyString(), Mockito.anyString(), handlerCaptorAfter.capture());
+        Assert.assertEquals(handlerCaptorAfter.getAllValues().size(), 1, "number of handlers mismatched.");
+        Assert.assertEquals(handlerCaptorAfter.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
 
         final ArgumentCaptor<ChannelHandler> handlerCaptorLast = ArgumentCaptor.forClass(ChannelHandler.class);
         Mockito.verify(nettyPipeline, Mockito.times(1)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
@@ -497,17 +491,10 @@ public class SmtpAsyncClientTest {
         Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
         // verify if session level is on, whether debug call will be called
         // verify logging messages
-        Mockito.verify(logger, Mockito.times(1))
-                .debug(
-                        Mockito.eq("[{},{}] connect operation complete. result={}, host={}, port={}, sslEnabled={}, sniNames={}"),
-                        Mockito.eq(Long.valueOf(1)),
-                        Mockito.eq("myCtx"),
-                        Mockito.eq("success"),
-                        Mockito.eq("smtp.one.two.three.com"),
-                        Mockito.eq(993),
-                        Mockito.eq(true),
-                        Mockito.eq(null)
-                );
+        Mockito.verify(logger, Mockito.times(1)).debug(
+                Mockito.eq("[{},{}] connect operation complete. result={}, host={}, port={}, sslEnabled={}, sniNames={}"),
+                Mockito.eq(Long.valueOf(1)), Mockito.eq("myCtx"), Mockito.eq("success"), Mockito.eq("smtp.one.two.three.com"), Mockito.eq(993),
+                Mockito.eq(true), Mockito.eq(null));
 
         // Tests proper shutdown
         client.shutdown();
@@ -537,8 +524,8 @@ public class SmtpAsyncClientTest {
 
         final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
         final Future<SmtpAsyncCreateSessionResponse> future = client.createSession(
-               SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 993, true)
-                        .setSessionContext("myCtx").build(), new SmtpAsyncSessionConfig(), SmtpAsyncSession.DebugMode.DEBUG_OFF);
+                SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 993, true).setSessionContext("myCtx").build(), new SmtpAsyncSessionConfig(),
+                SmtpAsyncSession.DebugMode.DEBUG_OFF);
 
         Assert.assertNotNull(future, "The response future should not be null");
 
@@ -577,10 +564,14 @@ public class SmtpAsyncClientTest {
         final GenericFutureListener listener = listenerCaptor.getAllValues().get(0);
         listener.operationComplete(nettyConnectFuture);
         final ArgumentCaptor<ChannelHandler> handlerCaptorFirst = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(nettyPipeline, Mockito.times(2)).addFirst(Mockito.anyString(), handlerCaptorFirst.capture());
-        Assert.assertEquals(handlerCaptorFirst.getAllValues().size(), 2, "number of handlers mismatched.");
-        Assert.assertEquals(handlerCaptorFirst.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptorFirst.getAllValues().get(1).getClass(), SslHandler.class, "expected class mismatched.");
+        Mockito.verify(nettyPipeline, Mockito.times(1)).addFirst(Mockito.anyString(), handlerCaptorFirst.capture());
+        Assert.assertEquals(handlerCaptorFirst.getAllValues().size(), 1, "number of handlers mismatched.");
+        Assert.assertEquals(handlerCaptorFirst.getAllValues().get(0).getClass(), SslHandler.class, "expected class mismatched.");
+
+        final ArgumentCaptor<ChannelHandler> handlerCaptorAfter = ArgumentCaptor.forClass(ChannelHandler.class);
+        Mockito.verify(nettyPipeline, Mockito.times(1)).addAfter(Mockito.anyString(), Mockito.anyString(), handlerCaptorAfter.capture());
+        Assert.assertEquals(handlerCaptorAfter.getAllValues().size(), 1, "number of handlers mismatched.");
+        Assert.assertEquals(handlerCaptorAfter.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
 
         final ArgumentCaptor<ChannelHandler> handlerCaptorLast = ArgumentCaptor.forClass(ChannelHandler.class);
         Mockito.verify(nettyPipeline, Mockito.times(1)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
@@ -588,8 +579,8 @@ public class SmtpAsyncClientTest {
         Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
 
         // verify to make sure logger isn't called
-        Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.anyLong(), Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyString(), Mockito.anyInt(), Mockito.anyBoolean());
+        Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.anyLong(), Mockito.anyString(), Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyInt(), Mockito.anyBoolean());
 
         // Tests proper shutdown
         client.shutdown();
@@ -744,18 +735,10 @@ public class SmtpAsyncClientTest {
         Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 0, "Unexpected count of ChannelHandler added.");
         // verify if session level is on, whether debug call will be called
         // verify logging messages
-        Mockito.verify(logger, Mockito.times(1))
-                .error(
-                        Mockito.eq("[{},{}] connect operation complete. result={}, host={}, port={}, sslEnabled={}, sniNames={}"),
-                        Mockito.eq("N/A"),
-                        Mockito.eq("myCtxFail"),
-                        Mockito.eq("failure"),
-                        Mockito.eq("smtp.test.example.com"),
-                        Mockito.eq(123),
-                        Mockito.eq(true),
-                        Mockito.eq(null),
-                        Mockito.isA(SmtpAsyncClientException.class)
-                );
+        Mockito.verify(logger, Mockito.times(1)).error(
+                Mockito.eq("[{},{}] connect operation complete. result={}, host={}, port={}, sslEnabled={}, sniNames={}"), Mockito.eq("N/A"),
+                Mockito.eq("myCtxFail"), Mockito.eq("failure"), Mockito.eq("smtp.test.example.com"), Mockito.eq(123), Mockito.eq(true),
+                Mockito.eq(null), Mockito.isA(SmtpAsyncClientException.class));
         Mockito.verify(nettyChannel, Mockito.times(1)).isActive();
         Mockito.verify(nettyChannel, Mockito.times(1)).close();
     }
@@ -911,18 +894,10 @@ public class SmtpAsyncClientTest {
         Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 0, "Unexpected count of ChannelHandler added.");
         // verify if session level is on, whether debug call will be called
         // verify logging messages
-        Mockito.verify(logger, Mockito.times(1))
-                .error(
-                        Mockito.eq("[{},{}] connect operation complete. result={}, host={}, port={}, sslEnabled={}, sniNames={}"),
-                        Mockito.eq("N/A"),
-                        Mockito.eq("myCtxFail"),
-                        Mockito.eq("failure"),
-                        Mockito.eq("smtp.test.example.com"),
-                        Mockito.eq(123),
-                        Mockito.eq(false),
-                        Mockito.eq(null),
-                        Mockito.isA(SmtpAsyncClientException.class)
-                );
+        Mockito.verify(logger, Mockito.times(1)).error(
+                Mockito.eq("[{},{}] connect operation complete. result={}, host={}, port={}, sslEnabled={}, sniNames={}"), Mockito.eq("N/A"),
+                Mockito.eq("myCtxFail"), Mockito.eq("failure"), Mockito.eq("smtp.test.example.com"), Mockito.eq(123), Mockito.eq(false),
+                Mockito.eq(null), Mockito.isA(SmtpAsyncClientException.class));
         Mockito.verify(nettyChannel, Mockito.times(1)).isActive();
         Mockito.verify(nettyChannel, Mockito.times(0)).close(); // since channel is not active
     }
@@ -960,12 +935,8 @@ public class SmtpAsyncClientTest {
 
         // test create session
         final Future<SmtpAsyncCreateSessionResponse> future = client.createSession(
-               SmtpAsyncSessionData.newBuilder("smtp.foo.com", 993, true)
-                        .setSessionContext("N/A")
-                        .setSniNames(Collections.emptyList())
-                        .build(),
-                new SmtpAsyncSessionConfig(),
-                SmtpAsyncSession.DebugMode.DEBUG_ON);
+                SmtpAsyncSessionData.newBuilder("smtp.foo.com", 993, true).setSessionContext("N/A").setSniNames(Collections.emptyList()).build(),
+                new SmtpAsyncSessionConfig(), SmtpAsyncSession.DebugMode.DEBUG_ON);
 
         // verify session creation
         Assert.assertNotNull(future, "Future for SmtpAsyncSession should not be null.");
@@ -976,8 +947,7 @@ public class SmtpAsyncClientTest {
         final SmtpClientChannelInitializer initializer = initializerCaptor.getAllValues().get(0);
 
         // should not call this connect
-        Mockito.verify(bootstrap, Mockito.times(0)).connect(Mockito.any(SocketAddress.class),
-                Mockito.any(SocketAddress.class));
+        Mockito.verify(bootstrap, Mockito.times(0)).connect(Mockito.any(SocketAddress.class), Mockito.any(SocketAddress.class));
         // should call following connect
         Mockito.verify(bootstrap, Mockito.times(1)).connect(Mockito.anyString(), Mockito.anyInt());
         final ArgumentCaptor<GenericFutureListener> listenerCaptor = ArgumentCaptor.forClass(GenericFutureListener.class);
@@ -1005,31 +975,29 @@ public class SmtpAsyncClientTest {
         final GenericFutureListener listener = listenerCaptor.getAllValues().get(0);
         listener.operationComplete(nettyConnectFuture);
         final ArgumentCaptor<ChannelHandler> handlerCaptorFirst = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(nettyPipeline, Mockito.times(2)).addFirst(Mockito.anyString(), handlerCaptorFirst.capture());
-        Assert.assertEquals(handlerCaptorFirst.getAllValues().size(), 2, "number of handlers mismatched.");
-        Assert.assertEquals(handlerCaptorFirst.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptorFirst.getAllValues().get(1).getClass(), SslHandler.class, "expected class mismatched.");
+        Mockito.verify(nettyPipeline, Mockito.times(1)).addFirst(Mockito.anyString(), handlerCaptorFirst.capture());
+        Assert.assertEquals(handlerCaptorFirst.getAllValues().size(), 1, "number of handlers mismatched.");
+        Assert.assertEquals(handlerCaptorFirst.getAllValues().get(0).getClass(), SslHandler.class, "expected class mismatched.");
+
+        final ArgumentCaptor<ChannelHandler> handlerCaptorAfter = ArgumentCaptor.forClass(ChannelHandler.class);
+        Mockito.verify(nettyPipeline, Mockito.times(1)).addAfter(Mockito.anyString(), Mockito.anyString(), handlerCaptorAfter.capture());
+        Assert.assertEquals(handlerCaptorAfter.getAllValues().size(), 1, "number of handlers mismatched.");
+        Assert.assertEquals(handlerCaptorAfter.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
 
         final ArgumentCaptor<ChannelHandler> handlerCaptorLast = ArgumentCaptor.forClass(ChannelHandler.class);
         Mockito.verify(nettyPipeline, Mockito.times(1)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
         Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 1, "Unexpected count of ChannelHandler added.");
-        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), SmtpClientConnectHandler.class,
-                "expected class mismatched.");
+        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
         // verify if session level is on, whether debug call will be called
         // verify logging messages
         Mockito.verify(logger, Mockito.times(1)).debug(
                 Mockito.eq("[{},{}] connect operation complete. result={}, host={}, port={}, sslEnabled={}, sniNames={}"),
-                Mockito.eq(Long.valueOf(Long.MAX_VALUE - 1)),
-                Mockito.eq("N/A"),
-                Mockito.eq("success"),
-                Mockito.eq("smtp.foo.com"),
-                Mockito.eq(993),
-                Mockito.eq(true),
-                Mockito.eq(Collections.emptyList()));
+                Mockito.eq(Long.valueOf(Long.MAX_VALUE - 1)), Mockito.eq("N/A"), Mockito.eq("success"), Mockito.eq("smtp.foo.com"), Mockito.eq(993),
+                Mockito.eq(true), Mockito.eq(Collections.emptyList()));
 
         // Next ID should be the max value of Long
-        Assert.assertEquals(((AtomicLong) Whitebox.getInternalState(client, "sessionCount")).get(),
-                Long.MAX_VALUE, "The session ID did not wrap around properly");
+        Assert.assertEquals(((AtomicLong) Whitebox.getInternalState(client, "sessionCount")).get(), Long.MAX_VALUE,
+                "The session ID did not wrap around properly");
     }
 
     /**
@@ -1148,11 +1116,8 @@ public class SmtpAsyncClientTest {
         // test create session
         final InetSocketAddress localAddress = new InetSocketAddress("10.10.10.10", 23112);
         final Future<SmtpAsyncCreateSessionResponse> future = aclient.createSession(
-               SmtpAsyncSessionData.newBuilder("smtp.foo.com", 993, true)
-                        .setSessionContext("someUserId")
-                        .setSniNames(sniNames)
-                        .setLocalAddress(localAddress)
-                        .build(),
+                SmtpAsyncSessionData.newBuilder("smtp.foo.com", 993, true).setSessionContext("someUserId").setSniNames(sniNames)
+                        .setLocalAddress(localAddress).build(),
                 config,
                 SmtpAsyncSession.DebugMode.DEBUG_ON);
 
@@ -1194,10 +1159,14 @@ public class SmtpAsyncClientTest {
         final GenericFutureListener listener = listenerCaptor.getAllValues().get(0);
         listener.operationComplete(nettyConnectFuture);
         final ArgumentCaptor<ChannelHandler> handlerCaptorFirst = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(nettyPipeline, Mockito.times(2)).addFirst(Mockito.anyString(), handlerCaptorFirst.capture());
-        Assert.assertEquals(handlerCaptorFirst.getAllValues().size(), 2, "number of handlers mismatched.");
-        Assert.assertEquals(handlerCaptorFirst.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptorFirst.getAllValues().get(1).getClass(), SslHandler.class, "expected class mismatched.");
+        Mockito.verify(nettyPipeline, Mockito.times(1)).addFirst(Mockito.anyString(), handlerCaptorFirst.capture());
+        Assert.assertEquals(handlerCaptorFirst.getAllValues().size(), 1, "number of handlers mismatched.");
+        Assert.assertEquals(handlerCaptorFirst.getAllValues().get(0).getClass(), SslHandler.class, "expected class mismatched.");
+
+        final ArgumentCaptor<ChannelHandler> handlerCaptorAfter = ArgumentCaptor.forClass(ChannelHandler.class);
+        Mockito.verify(nettyPipeline, Mockito.times(1)).addAfter(Mockito.anyString(), Mockito.anyString(), handlerCaptorAfter.capture());
+        Assert.assertEquals(handlerCaptorAfter.getAllValues().size(), 1, "number of handlers mismatched.");
+        Assert.assertEquals(handlerCaptorAfter.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
 
         final ArgumentCaptor<ChannelHandler> handlerCaptorLast = ArgumentCaptor.forClass(ChannelHandler.class);
         Mockito.verify(nettyPipeline, Mockito.times(1)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
@@ -1207,17 +1176,12 @@ public class SmtpAsyncClientTest {
         // verify logging messages
         Mockito.verify(logger, Mockito.times(1)).debug(
                 Mockito.eq("[{},{}] connect operation complete. result={}, host={}, port={}, sslEnabled={}, sniNames={}"),
-                Mockito.eq(Long.valueOf(1)),
-                Mockito.eq("someUserId"),
-                Mockito.eq("success"),
-                Mockito.eq("smtp.foo.com"),
-                Mockito.eq(993),
-                Mockito.eq(true),
-                Mockito.eq(Collections.singletonList("sni.domain.name.org")));
+                Mockito.eq(Long.valueOf(1)), Mockito.eq("someUserId"), Mockito.eq("success"), Mockito.eq("smtp.foo.com"), Mockito.eq(993),
+                Mockito.eq(true), Mockito.eq(Collections.singletonList("sni.domain.name.org")));
 
         // Next ID should be one more
-        Assert.assertEquals(((AtomicLong) Whitebox.getInternalState(aclient, "sessionCount")).get(),
-                2, "The session ID did not wrap around properly");
+        Assert.assertEquals(((AtomicLong) Whitebox.getInternalState(aclient, "sessionCount")).get(), 2,
+                "The session ID did not wrap around properly");
     }
 
     /**
@@ -1251,14 +1215,8 @@ public class SmtpAsyncClientTest {
         final List<String> sniNames = Collections.singletonList("sni.domain.name.org");
         // test create session
         final InetSocketAddress localAddress = new InetSocketAddress("10.10.10.10", 23112);
-        final Future<SmtpAsyncCreateSessionResponse> future = aclient.createSession(
-               SmtpAsyncSessionData.newBuilder("smtp.foo.com", 993, true)
-                        .setSessionContext("user1")
-                        .setSniNames(sniNames)
-                        .setLocalAddress(localAddress)
-                        .build(),
-                config,
-                SmtpAsyncSession.DebugMode.DEBUG_ON);
+        final Future<SmtpAsyncCreateSessionResponse> future = aclient.createSession(SmtpAsyncSessionData.newBuilder("smtp.foo.com", 993, true)
+                .setSessionContext("user1").setSniNames(sniNames).setLocalAddress(localAddress).build(), config, SmtpAsyncSession.DebugMode.DEBUG_ON);
 
         // verify session creation
         Assert.assertNotNull(future, "Future for SmtpAsyncSession should not be null.");
@@ -1298,10 +1256,15 @@ public class SmtpAsyncClientTest {
         final GenericFutureListener listener = listenerCaptor.getAllValues().get(0);
         listener.operationComplete(nettyConnectFuture);
         final ArgumentCaptor<ChannelHandler> handlerCaptorFirst = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(nettyPipeline, Mockito.times(2)).addFirst(Mockito.anyString(), handlerCaptorFirst.capture());
-        Assert.assertEquals(handlerCaptorFirst.getAllValues().size(), 2, "number of handlers mismatched.");
-        Assert.assertEquals(handlerCaptorFirst.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptorFirst.getAllValues().get(1).getClass(), SslHandler.class, "expected class mismatched.");
+        Mockito.verify(nettyPipeline, Mockito.times(1)).addFirst(Mockito.anyString(), handlerCaptorFirst.capture());
+        Assert.assertEquals(handlerCaptorFirst.getAllValues().size(), 1, "number of handlers mismatched.");
+        Assert.assertEquals(handlerCaptorFirst.getAllValues().get(0).getClass(), SslHandler.class, "expected class mismatched.");
+
+        final ArgumentCaptor<ChannelHandler> handlerCaptorAfter = ArgumentCaptor.forClass(ChannelHandler.class);
+        Mockito.verify(nettyPipeline, Mockito.times(1)).addAfter(Mockito.anyString(), Mockito.anyString(), handlerCaptorAfter.capture());
+        Assert.assertEquals(handlerCaptorAfter.getAllValues().size(), 1, "number of handlers mismatched.");
+        Assert.assertEquals(handlerCaptorAfter.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
+
 
         final ArgumentCaptor<ChannelHandler> handlerCaptorLast = ArgumentCaptor.forClass(ChannelHandler.class);
         Mockito.verify(nettyPipeline, Mockito.times(1)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
@@ -1312,15 +1275,12 @@ public class SmtpAsyncClientTest {
         Mockito.verify(logger, Mockito.times(1)).debug(
                 Mockito.eq("[{},{}] connect operation complete. result={}, host={}, port={}, sslEnabled={}, sniNames={}"),
                 Mockito.eq(Long.valueOf(Long.MAX_VALUE)), // biggest possible ID
-                Mockito.eq("user1"),
-                Mockito.eq("success"),
-                Mockito.eq("smtp.foo.com"),
-                Mockito.eq(993),
-                Mockito.eq(true),
+                Mockito.eq("user1"), Mockito.eq("success"), Mockito.eq("smtp.foo.com"), Mockito.eq(993), Mockito.eq(
+                        true),
                 Mockito.eq(Collections.singletonList("sni.domain.name.org")));
 
         // Check to make sure the next ID cycled back to 1 to avoid negative IDs
-        Assert.assertEquals(((AtomicLong) Whitebox.getInternalState(aclient, "sessionCount")).get(),
-                1, "The session ID did not wrap around properly");
+        Assert.assertEquals(((AtomicLong) Whitebox.getInternalState(aclient, "sessionCount")).get(), 1,
+                "The session ID did not wrap around properly");
     }
 }

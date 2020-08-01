@@ -5,7 +5,9 @@
 package com.yahoo.smtpnio.async.client;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -13,7 +15,11 @@ import java.util.function.LongUnaryOperator;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.net.ssl.SNIHostName;
+import javax.net.ssl.SNIServerName;
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLParameters;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,11 +27,9 @@ import org.slf4j.LoggerFactory;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
 import com.yahoo.smtpnio.async.netty.SmtpClientConnectHandler;
-import com.yahoo.smtpnio.async.netty.SslDetectHandler;
-import com.yahoo.smtpnio.async.netty.SslHandlerBuilder;
-import com.yahoo.smtpnio.async.netty.StarttlsHandler;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
@@ -35,6 +39,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslHandler;
 import io.netty.util.concurrent.GenericFutureListener;
 
 /**
@@ -65,8 +70,8 @@ public class SmtpAsyncClient {
     public static final String RE_CONNECTION_REC = "[{},{}] try starttls. Re-connecting with non-ssl. "
             + "host={}, port={}, sslEnabled={}, startTlsEnabled={}, sniNames={}";
 
-    /** The SSL context. */
-    private final SslContext sslContext;
+    /** Handler name for the ssl handler. */
+    static final String SSL_HANDLER = "sslHandler";
 
     /** Logger for debugging messages, errors and other info. */
     @Nonnull
@@ -85,9 +90,8 @@ public class SmtpAsyncClient {
      * Constructs a NIO-based SMTP client.
      *
      * @param numThreads number of threads to be used by the SMTP client
-     * @throws SSLException when encountering an error to create a {@link SslContext} for this client
      */
-    public SmtpAsyncClient(final int numThreads) throws SSLException {
+    public SmtpAsyncClient(final int numThreads) {
         this(new Bootstrap(), new NioEventLoopGroup(numThreads), LoggerFactory.getLogger(SmtpAsyncClient.class));
     }
 
@@ -97,10 +101,8 @@ public class SmtpAsyncClient {
      * @param bootstrap a {@link Bootstrap} instance that makes it easy to bootstrap a {@link Channel} to use for clients
      * @param group an {@link EventLoopGroup} instance allowing registering {@link Channel}s for processing later selection during the event loop
      * @param logger {@link Logger} instance
-     * @throws SSLException when encountering an error to create a {@link SslContext} for this client
      */
-    SmtpAsyncClient(@Nonnull final Bootstrap bootstrap, @Nonnull final EventLoopGroup group, @Nonnull final Logger logger) throws SSLException {
-        this.sslContext = SslContextBuilder.forClient().build();
+    SmtpAsyncClient(@Nonnull final Bootstrap bootstrap, @Nonnull final EventLoopGroup group, @Nonnull final Logger logger) {
         this.logger = logger;
         this.bootstrap = bootstrap;
         this.group = group;
@@ -132,7 +134,8 @@ public class SmtpAsyncClient {
      * @param debugOption the debugging option used
      * @param sessionCreatedFuture future containing the result of the request
      */
-    public void createStarttlsSession(@Nonnull final SmtpAsyncSessionData sessionData, @Nonnull final SmtpAsyncSessionConfig config,
+    void createStarttlsSession(@Nonnull final SmtpAsyncSessionData sessionData,
+            @Nonnull final SmtpAsyncSessionConfig config,
             @Nonnull final SmtpAsyncSession.DebugMode debugOption, @Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture) {
         createSession(sessionData, config, debugOption, sessionCreatedFuture, false);
     }
@@ -171,12 +174,12 @@ public class SmtpAsyncClient {
         nettyConnectFuture.addListener(new GenericFutureListener<io.netty.util.concurrent.Future<? super Void>>() {
             @Override
             public void operationComplete(final io.netty.util.concurrent.Future<? super Void> future) throws SmtpAsyncClientException {
+                final Channel ch = nettyConnectFuture.channel();
+
                 if (!future.isSuccess()) {
                     final SmtpAsyncClientException ex = new SmtpAsyncClientException(SmtpAsyncClientException.FailureType.WRITE_TO_SERVER_FAILED,
                             future.cause());
-                    sessionCreatedFuture.done(ex);
-                    logger.error(CONNECT_RESULT_REC, "N/A", sessionCtx, "failure", host, port, isSsl, sniNames, ex);
-                    closeChannel(nettyConnectFuture.channel());
+                    handleSessionFailed("N/A", sessionData, ex, sessionCreatedFuture, ch, isSsl);
                     return;
                 }
 
@@ -188,8 +191,17 @@ public class SmtpAsyncClient {
                     }
                 });
 
-                final Channel ch = nettyConnectFuture.channel();
-                final ChannelPipeline pipeline = ch.pipeline();
+                // create SslHandler for secure connection
+                SslHandler sslHandler = null;
+                if (isSsl) {
+                    try {
+                        sslHandler = createSSLHandler(ch.alloc(), host, port, sniNames);
+                    } catch (SSLException e) {
+                        final SmtpAsyncClientException ex = new SmtpAsyncClientException(FailureType.CONNECTION_SSL_EXCEPTION, e);
+                        handleSessionFailed(sessionId, sessionData, ex, sessionCreatedFuture, ch, isSsl);
+                        return;
+                    }
+                }
 
                 // decide session state
                 final SessionMode sessionMode;
@@ -203,21 +215,21 @@ public class SmtpAsyncClient {
                     sessionMode = SessionMode.NON_SSL;
                 }
 
+                final ChannelPipeline pipeline = ch.pipeline();
+
                 // add session specific handlers
                 switch (sessionMode) {
                 case SSL_WITH_STARTTLS:
-                    pipeline.addFirst(SslDetectHandler.HANDLER_NAME, new SslDetectHandler(sessionCount.get(), sessionData, config,
+                    pipeline.addFirst(SSL_HANDLER, sslHandler);
+                    pipeline.addAfter(SSL_HANDLER, SslDetectHandler.HANDLER_NAME, new SslDetectHandler(sessionCount.get(), sessionData, config,
                             LoggerFactory.getLogger(SslDetectHandler.class), debugOption, smtpAsyncClient, sessionCreatedFuture));
-                    pipeline.addFirst(SslHandlerBuilder.SSL_HANDLER,
-                            SslHandlerBuilder.newBuilder(sslContext, ch.alloc(), host, port, sniNames).build());
                     pipeline.addLast(SmtpClientConnectHandler.HANDLER_NAME, new SmtpClientConnectHandler(sessionCreatedFuture,
                             LoggerFactory.getLogger(SmtpClientConnectHandler.class), debugOption, sessionId, sessionCtx));
                     break;
 
                 case SSL_WITHOUT_STARTTLS:
                     // don't add SslDetectHandler if startTls is disabled
-                    pipeline.addFirst(SslHandlerBuilder.SSL_HANDLER,
-                            SslHandlerBuilder.newBuilder(sslContext, ch.alloc(), host, port, sniNames).build());
+                    pipeline.addFirst(SSL_HANDLER, sslHandler);
                     pipeline.addLast(SmtpClientConnectHandler.HANDLER_NAME, new SmtpClientConnectHandler(sessionCreatedFuture,
                             LoggerFactory.getLogger(SmtpClientConnectHandler.class), debugOption, sessionId, sessionCtx));
                     break;
@@ -247,13 +259,51 @@ public class SmtpAsyncClient {
     }
 
     /**
-     * Closes channel.
+     * Fails the session future on error and close the channel.
      *
-     * @param channel the channel
+     * @param sessionId client's session id
+     * @param sessionData connection data for the session
+     * @param ex exception that causes the session failure
+     * @param sessionCreatedFuture SMTP session future
+     * @param channel session channel to close
+     * @param isSsl whether session use ssl or not
      */
-    private void closeChannel(@Nullable final Channel channel) {
+    private void handleSessionFailed(@Nonnull final Object sessionId, @Nonnull final SmtpAsyncSessionData sessionData,
+            @Nonnull final SmtpAsyncClientException ex, @Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture,
+            @Nullable final Channel channel, final boolean isSsl) {
+        sessionCreatedFuture.done(ex);
+        logger.error(CONNECT_RESULT_REC, sessionId, sessionData.getSessionContext(), "failure", sessionData.getHost(), sessionData.getPort(), isSsl,
+                sessionData.getSniNames(), ex);
         if (channel != null && channel.isActive()) {
             channel.close();
+        }
+    }
+
+    /**
+     * Creates a new {@link SslHandler} object used to build secure connection.
+     *
+     * @param alloc allocator for ByteBuf objects
+     * @param host host name of server
+     * @param port port of server
+     * @param sniNames collection of SNI names
+     * @return a SslHandlerBuilder object used to build {@link SslHandler}
+     * @throws SSLException on SslContext creation error
+     */
+    static SslHandler createSSLHandler(@Nonnull final ByteBufAllocator alloc, @Nonnull final String host, final int port,
+            @Nullable final Collection<String> sniNames) throws SSLException {
+        final SslContext sslContext = SslContextBuilder.forClient().build();
+        if (sniNames != null && !sniNames.isEmpty()) { // SNI support
+            final List<SNIServerName> serverNames = new ArrayList<>();
+            for (final String sni : sniNames) {
+                serverNames.add(new SNIHostName(sni));
+            }
+            final SSLParameters params = new SSLParameters();
+            params.setServerNames(serverNames);
+            final SSLEngine engine = sslContext.newEngine(alloc, host, port);
+            engine.setSSLParameters(params);
+            return new SslHandler(engine);
+        } else {
+            return sslContext.newHandler(alloc, host, port);
         }
     }
 
