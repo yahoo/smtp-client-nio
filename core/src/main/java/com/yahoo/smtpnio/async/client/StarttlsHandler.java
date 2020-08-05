@@ -10,13 +10,13 @@ import javax.annotation.Nonnull;
 import javax.net.ssl.SSLException;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.yahoo.smtpnio.async.client.SmtpAsyncSession.DebugMode;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
 import com.yahoo.smtpnio.async.internal.SmtpAsyncSessionImpl;
 import com.yahoo.smtpnio.async.request.ExtendedHelloCommand;
-import com.yahoo.smtpnio.async.request.HelloCommand;
 import com.yahoo.smtpnio.async.request.StarttlsCommand;
 import com.yahoo.smtpnio.async.response.SmtpResponse;
 import com.yahoo.smtpnio.async.response.SmtpResponse.Code;
@@ -97,19 +97,15 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
          */
         GET_EHLO_RESP,
 
-        /**
-         * Waiting for HELO response, send STARTTLS if all responses are good, otherwise fails. According to
-         * <a href="https://tools.ietf.org/html/rfc5321#section-3.2">RFC5231</a>, HELO response should have no extensions. So STARTTLS capability is
-         * not checked in HELO response.
-         */
-        GET_HELO_RESP,
-
         /** Waiting for STARTTLS response, add SslHandler if response code is 220, otherwise fails. */
         GET_STARTTLS_RESP;
     }
 
     /** Literal for the name registered in pipeline. */
     public static final String HANDLER_NAME = "StarttlsHandler";
+
+    /** Handler name for the ssl handler. */
+    private static final String SSL_HANDLER_NAME = "sslHandler";
 
     /** Literal for the STARTTLS capability. */
     public static final String STARTTLS = "STARTTLS\r\n";
@@ -145,12 +141,26 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
      * Initializes a {@link StarttlsHandler} to process greeting after plain re-connection.
      *
      * @param sessionFuture SMTP session future
-     * @param logger the {@link Logger} instance for {@link SmtpAsyncSessionImpl}
      * @param logOpt logging option for the session to be created
      * @param sessionId the session id
      * @param sessionData sessionData object containing information about the connection.
      */
-    public StarttlsHandler(@Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionFuture, @Nonnull final Logger logger,
+    public StarttlsHandler(@Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionFuture,
+            @Nonnull final DebugMode logOpt, final long sessionId, @Nonnull final SmtpAsyncSessionData sessionData) {
+        this(sessionFuture, LoggerFactory.getLogger(StarttlsHandler.class), logOpt, sessionId, sessionData);
+    }
+
+    /**
+     * Initializes a {@link StarttlsHandler} to process greeting after plain re-connection.
+     *
+     * @param sessionFuture SMTP session future
+     * @param logger the {@link Logger} instance for {@link StarttlsHandler}
+     * @param logOpt logging option for the session to be created
+     * @param sessionId the session id
+     * @param sessionData sessionData object containing information about the connection.
+     */
+    StarttlsHandler(@Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionFuture,
+            @Nonnull final Logger logger,
             @Nonnull final DebugMode logOpt, final long sessionId, @Nonnull final SmtpAsyncSessionData sessionData) {
         this.sessionCreatedFuture = sessionFuture;
         this.logger = logger;
@@ -166,7 +176,7 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
     public void decode(@Nonnull final ChannelHandlerContext ctx, @Nonnull final SmtpResponse serverResponse, @Nonnull final List<Object> out) {
         final Channel channel = ctx.channel();
         final ChannelPipeline pipeline = ctx.pipeline();
-        boolean isSessionFutureFailed = false; // the session future should be failed in this call
+        SmtpAsyncClientException failedCause = null; // exception to be set to session on failure
 
         switch (this.startTlsState) {
         case GET_SERVER_GREETING:
@@ -175,42 +185,29 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
                 channel.writeAndFlush(new ExtendedHelloCommand(EHLO_CLIENT_NAME).getCommandLineBytes());
                 this.startTlsState = StartTlsState.GET_EHLO_RESP;
             } else {
-                isSessionFutureFailed = true;
+                failedCause = new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_INVALID_GREETING_CODE, sessionId, sessionCtx,
+                        serverResponse.toString());
             }
             break;
 
         case GET_EHLO_RESP:
             // check EHLO responses
-            if (serverResponse.getMessage().equalsIgnoreCase(STARTTLS)) {
+            if (STARTTLS.equalsIgnoreCase(serverResponse.getMessage())) {
                 this.receivedStarttlsCapability = true;
             }
 
             // decide next state when we receive last response
             if (serverResponse.isLastLineResponse()) {
                 if (serverResponse.getCode().value() != Code.EHLO_SUCCESS) {
-                    // EHLO fails, try HELO as fallback
-                    channel.writeAndFlush(new HelloCommand(EHLO_CLIENT_NAME).getCommandLineBytes());
-                    this.startTlsState = StartTlsState.GET_HELO_RESP;
-                } else if (this.receivedStarttlsCapability) {
+                    // receive bad responses for EHLO
+                    failedCause = new SmtpAsyncClientException(FailureType.BAD_EHLO_RESPONSE, sessionId, sessionCtx, serverResponse.toString());
+                } else if (!this.receivedStarttlsCapability) {
+                    // server doesn't reply STARTTLS capability
+                    failedCause = new SmtpAsyncClientException(FailureType.NO_STARTTLS_CAPABILITY, sessionId, sessionCtx, serverResponse.toString());
+                } else {
                     // confirmed STARTTLS capability from server, send STARTTLS command
                     channel.writeAndFlush(new StarttlsCommand().getCommandLineBytes());
                     this.startTlsState = StartTlsState.GET_STARTTLS_RESP;
-                } else {
-                    // server doesn't reply STARTTLS capability
-                    isSessionFutureFailed = true;
-                }
-            }
-            break;
-
-        case GET_HELO_RESP:
-            if (serverResponse.isLastLineResponse()) {
-                if (serverResponse.getCode().value() == Code.EHLO_SUCCESS) {
-                    // received 250 response, don't check STARTTLS capability in HELO response
-                    channel.writeAndFlush(new StarttlsCommand().getCommandLineBytes());
-                    this.startTlsState = StartTlsState.GET_STARTTLS_RESP;
-                } else {
-                    // bad response for HELO
-                    isSessionFutureFailed = true;
                 }
             }
             break;
@@ -219,37 +216,38 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
             // receive startTls response, remove this handler and add SslHandler
             pipeline.remove(this);
 
-            if (serverResponse.getCode().value() == SmtpResponse.Code.GREETING) { // successful response
+            if (serverResponse.isLastLineResponse() && serverResponse.getCode().value() == SmtpResponse.Code.STARTTLS_SUCCESS) {
+                // successful response
                 try {
                     // create sslHandler
                     final SslHandler sslHandler = SmtpAsyncClient.createSSLHandler(ctx.alloc(), this.sessionData.getHost(),
                             this.sessionData.getPort(), this.sessionData.getSniNames());
                     // add listener to check if ssl connection succeeds
                     sslHandler.handshakeFuture().addListener(new SSLHandShakeCompleteListener(serverResponse, ctx));
-                    ctx.pipeline().addFirst(SmtpAsyncClient.SSL_HANDLER, sslHandler);
+                    ctx.pipeline().addFirst(SSL_HANDLER_NAME, sslHandler);
                 } catch (final SSLException e) {
-                    isSessionFutureFailed = true;
+                    failedCause = new SmtpAsyncClientException(FailureType.SSL_CONTEXT_EXCEPTION, this.sessionId, this.sessionCtx);
                 }
             } else {
-                isSessionFutureFailed = true;
+                failedCause = new SmtpAsyncClientException(FailureType.BAD_STARTTLS_RESPONSE, this.sessionId, this.sessionCtx,
+                        serverResponse.toString());
             }
             break;
 
         default:
             // shouldn't reach here
-            ctx.fireExceptionCaught(new SmtpAsyncClientException(FailureType.STARTTLS_FALIED, "Invalid state"));
+            failedCause = new SmtpAsyncClientException(FailureType.ILLEGAL_STATE, sessionId, sessionCtx, serverResponse.toString());
         }
 
-        // close channel and clean up if startTls failed
-        if (isSessionFutureFailed) {
-            handleSessionFailed(ctx,
-                    new SmtpAsyncClientException(FailureType.STARTTLS_FALIED, this.sessionId, this.sessionCtx, serverResponse.toString()));
+        // close channel and clean up if startTls failed, all handlers will be removed through handleSessionFailed's close.
+        if (failedCause != null) {
+            handleSessionFailed(ctx, failedCause);
         }
     }
 
     @Override
     public void exceptionCaught(@Nonnull final ChannelHandlerContext ctx, @Nonnull final Throwable cause) {
-        handleSessionFailed(ctx, new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEPTION, cause, this.sessionId, this.sessionCtx));
+        handleSessionFailed(ctx, new SmtpAsyncClientException(FailureType.CHANNEL_EXCEPTION, cause, this.sessionId, this.sessionCtx));
     }
 
     @Override
@@ -258,7 +256,7 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
             final IdleStateEvent event = (IdleStateEvent) msg;
             if (event.state() == IdleState.READER_IDLE) {
                 handleSessionFailed(ctx,
-                        new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_EXCEED_IDLE_MAX, this.sessionId, this.sessionCtx));
+                        new SmtpAsyncClientException(FailureType.CHANNEL_TIMEOUT, this.sessionId, this.sessionCtx));
             }
         }
     }
@@ -268,7 +266,7 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
         if (this.sessionCreatedFuture == null) {
             return; // cleanup() has been called, leave
         }
-        handleSessionFailed(ctx, new SmtpAsyncClientException(FailureType.CONNECTION_INACTIVE));
+        handleSessionFailed(ctx, new SmtpAsyncClientException(FailureType.CHANNEL_INACTIVE, this.sessionId, this.sessionCtx));
 
     }
 

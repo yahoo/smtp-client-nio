@@ -41,10 +41,13 @@ public class SmtpResponse {
         public static final int GREETING = 220;
 
         /** Session ending from the "QUIT" command. */
-       public static final int CLOSING = 221;
+        public static final int CLOSING = 221;
 
         /** Successful response from the "EHLO" command. */
         public static final int EHLO_SUCCESS = 250;
+
+        /** Server is ready to start TLS. */
+        public static final int STARTTLS_SUCCESS = 220;
 
         /** Awaiting input from the "DATA" command. */
         public static final int START_MSG_INPUT = 354;

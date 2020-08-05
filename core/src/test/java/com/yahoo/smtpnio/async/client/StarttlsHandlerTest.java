@@ -105,12 +105,12 @@ public class StarttlsHandlerTest {
     }
 
     /**
-     * Tests {@code decode} method on a successful startTls connection by sending HELO as fallback.
+     * Tests {@code decode} method on a successful startTls connection with logger trace off but debug on.
      *
      * @throws Exception will not throw in this test
      */
     @Test
-    public void testDecodeStartTlsSuccessFallbackHelo() throws Exception {
+    public void testDecodeStartTlsSuccessDebugOn() throws Exception {
         final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<>();
         final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 465, true).setSessionContext("myCtx")
                 .build();
@@ -128,9 +128,7 @@ public class StarttlsHandlerTest {
 
         // receive server greeting and send EHLO
         handler.decode(ctx, new SmtpResponse("220 Hello there"), out);
-        // receive bad EHLO response, send HELO
-        handler.decode(ctx, new SmtpResponse("500 Command not recognized"), out);
-        // receive HELO response and send STARTTLS
+        // receive EHLO response and send STARTTLS
         handler.decode(ctx, new SmtpResponse("250-STARTTLS\r\n"), out);
         handler.decode(ctx, new SmtpResponse("250 PIPELINE"), out);
         // receive starttls greeting and add SslHandler
@@ -251,7 +249,7 @@ public class StarttlsHandlerTest {
     }
 
     /**
-     * Tests {@code decode} method failed on bad EHLO response and HELO response.
+     * Tests {@code decode} method failed on bad EHLO response.
      *
      * @throws IllegalArgumentException will not throw in this test
      * @throws IllegalAccessException will not throw in this test
@@ -260,7 +258,7 @@ public class StarttlsHandlerTest {
      * @throws TimeoutException will not throw in this test
      */
     @Test
-    public void testDecodeStartTlsFailBadHeloResponse()
+    public void testDecodeStartTlsFailBadEhloResponse()
             throws IllegalArgumentException, IllegalAccessException, SmtpAsyncClientException, InterruptedException, TimeoutException {
         final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<>();
         final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 465, true).setSessionContext("myCtx")
@@ -280,13 +278,11 @@ public class StarttlsHandlerTest {
 
         // receive server greeting and send EHLO
         handler.decode(ctx, new SmtpResponse("220 Hello there"), out);
-        // receive bad EHLO response, send HELO
-        handler.decode(ctx, new SmtpResponse("500 Command not recognized"), out);
-        // receive bad HELO response
+        // receive bad EHLO response
         final String errMsg = "504 some error response";
         final SmtpResponse resp = new SmtpResponse(errMsg);
         handler.decode(ctx, resp, out);
-        Mockito.verify(channel, Mockito.times(2)).writeAndFlush(Mockito.anyObject());
+        Mockito.verify(channel, Mockito.times(1)).writeAndFlush(Mockito.anyObject());
         Assert.assertTrue(smtpFuture.isDone(), "Future should be done");
 
         Mockito.verify(logger, Mockito.times(1)).error(Mockito.eq("[{},{}] startTls failed."), Mockito.eq(SESSION_ID), Mockito.eq("myCtx"),
@@ -400,10 +396,68 @@ public class StarttlsHandlerTest {
 
         // receive server greeting and send EHLO
         handler.decode(ctx, new SmtpResponse("220 Hello there"), out);
-        // receive bad EHLO response, send HELO
         handler.decode(ctx, new SmtpResponse("250 STARTTLS\r\n"), out);
         // receive bad starttls greeting
         final String errMsg = "504 some error response";
+        final SmtpResponse resp = new SmtpResponse(errMsg);
+        handler.decode(ctx, resp, out);
+
+        Mockito.verify(logger, Mockito.times(1)).error(Mockito.eq("[{},{}] startTls failed."), Mockito.eq(SESSION_ID), Mockito.eq("myCtx"),
+                Mockito.isA(SmtpAsyncClientException.class));
+
+        Assert.assertTrue(smtpFuture.isDone(), "Future should be done");
+        ExecutionException ex = null;
+        try {
+            smtpFuture.get(5, TimeUnit.MILLISECONDS);
+        } catch (final ExecutionException ee) {
+            ex = ee;
+        }
+
+        Assert.assertNotNull(ex, "Expect exception to be thrown.");
+        Assert.assertNotNull(ex.getCause(), "Expect cause.");
+        Assert.assertEquals(ex.getCause().getClass(), SmtpAsyncClientException.class, "Expected result mismatched.");
+        Mockito.verify(ctx, Mockito.times(1)).close();
+        Mockito.verify(channel, Mockito.times(1)).isActive();
+
+        // Verify if cleanup happened correctly.
+        for (final Field field : fieldsToCheck) {
+            Assert.assertNull(field.get(handler), "Cleanup should set " + field.getName() + " as null");
+        }
+    }
+
+    /**
+     * Tests {@code decode} method failed on multiple STARTTLS response.
+     *
+     * @throws IllegalArgumentException will not throw in this test
+     * @throws IllegalAccessException will not throw in this test
+     * @throws SmtpAsyncClientException will not throw in this test
+     * @throws InterruptedException will not throw in this test
+     * @throws TimeoutException will not throw in this test
+     */
+    @Test
+    public void testDecodeStartTlsFailMultiStarttlsResponse()
+            throws IllegalArgumentException, IllegalAccessException, SmtpAsyncClientException, InterruptedException, TimeoutException {
+        final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<>();
+        final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 465, true).setSessionContext("myCtx")
+                .build();
+        final Logger logger = Mockito.mock(Logger.class);
+
+        final StarttlsHandler handler = new StarttlsHandler(smtpFuture, logger, DebugMode.DEBUG_ON, SESSION_ID, sessionData);
+
+        final ChannelHandlerContext ctx = Mockito.mock(ChannelHandlerContext.class);
+        final ChannelPipeline pipeline = Mockito.mock(ChannelPipeline.class);
+        final Channel channel = Mockito.mock(Channel.class);
+        Mockito.when(ctx.pipeline()).thenReturn(pipeline);
+        Mockito.when(ctx.channel()).thenReturn(channel);
+        Mockito.when(channel.isActive()).thenReturn(true);
+        Mockito.when(logger.isTraceEnabled()).thenReturn(true);
+        final List<Object> out = new ArrayList<>();
+
+        // receive server greeting and send EHLO
+        handler.decode(ctx, new SmtpResponse("220 Hello there"), out);
+        handler.decode(ctx, new SmtpResponse("250 STARTTLS\r\n"), out);
+        // receive bad starttls greeting
+        final String errMsg = "504-not the last line";
         final SmtpResponse resp = new SmtpResponse(errMsg);
         handler.decode(ctx, resp, out);
 
@@ -613,7 +667,7 @@ public class StarttlsHandlerTest {
         Assert.assertNotNull(cause, "Expect cause.");
         Assert.assertEquals(cause.getClass(), SmtpAsyncClientException.class, "Expected result mismatched.");
         final SmtpAsyncClientException aEx = (SmtpAsyncClientException) cause;
-        Assert.assertEquals(aEx.getFailureType(), FailureType.CONNECTION_FAILED_EXCEED_IDLE_MAX, "Failure type mismatched");
+        Assert.assertEquals(aEx.getFailureType(), FailureType.CHANNEL_TIMEOUT, "Failure type mismatched");
 
         Mockito.verify(ctx, Mockito.times(1)).close();
         Mockito.verify(channel, Mockito.times(1)).isActive();

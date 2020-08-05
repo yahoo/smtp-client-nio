@@ -26,9 +26,6 @@ public class SmtpAsyncClientException extends Exception {
         /** Timeout on server connection. */
         CONNECTION_FAILED_EXCEED_IDLE_MAX("Timeout on server connection."),
 
-        /** Connection failed due to ssl error. */
-        CONNECTION_SSL_EXCEPTION("SSL error during connection."),
-
         /** Connection inactive. */
         CONNECTION_INACTIVE("Connection inactive."),
 
@@ -68,8 +65,23 @@ public class SmtpAsyncClientException extends Exception {
         /** Server replies non-ssl during an ssl enabled connection. */
         NOT_SSL_RECORD("Server replied non-ssl response during an ssl enabled connection."),
 
-        /** Stattls fails. */
-        STARTTLS_FALIED("Failed on starttls");
+        /** Code reaches an unexpected illegal state. */
+        ILLEGAL_STATE("Reach an illegal state."),
+
+        /** Connection inactive. */
+        CHANNEL_INACTIVE("Channel is inactive."),
+
+        /** Bad response for EHLO command. */
+        BAD_EHLO_RESPONSE("Server response code is not 250 for EHLO command."),
+
+        /** Bad response for STARTTLS command. */
+        BAD_STARTTLS_RESPONSE("Server response code is not 220 for STARTTLS command."),
+
+        /** Fail to create ssl context. */
+        SSL_CONTEXT_EXCEPTION("Failed to create ssl context."),
+
+        /** No STARTTLS capability. */
+        NO_STARTTLS_CAPABILITY("Server has no STARTTLS capability.");
 
         /**
          * Constructor to add an error message for failure type belonging to this enum.

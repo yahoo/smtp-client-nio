@@ -4,12 +4,12 @@
  */
 package com.yahoo.smtpnio.async.client;
 
-import java.util.Collection;
 import java.util.List;
 
 import javax.annotation.Nonnull;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.yahoo.smtpnio.async.client.SmtpAsyncSession.DebugMode;
 
@@ -25,10 +25,6 @@ import io.netty.handler.ssl.NotSslRecordException;
 public class SslDetectHandler extends ByteToMessageDecoder {
     /** Literal for the name registered in pipeline. */
     public static final String HANDLER_NAME = "SslDetectHandler";
-
-    /** Debug record string template for Ssl detection. */
-    private static final String SSL_DETECT_REC = "[{},{}] finish checking native SSL availability. "
-            + "result={}, host={}, port={}, sslEnabled={}, sniNames={}";
 
     /** Session Id. */
     private final long sessionId;
@@ -57,14 +53,31 @@ public class SslDetectHandler extends ByteToMessageDecoder {
      * @param sessionId client's session id
      * @param sessionData connection data for this session
      * @param sessionConfig configurations for this session
-     * @param logger logger for debugging messages
      * @param logOpt debugging options
      * @param smtpAsyncClient Client that holds this connection
      * @param sessionCreatedFuture SMTP session future
      */
     public SslDetectHandler(final long sessionId, @Nonnull final SmtpAsyncSessionData sessionData,
-            @Nonnull final SmtpAsyncSessionConfig sessionConfig, @Nonnull final Logger logger, @Nonnull final DebugMode logOpt,
+            @Nonnull final SmtpAsyncSessionConfig sessionConfig, @Nonnull final DebugMode logOpt,
             @Nonnull final SmtpAsyncClient smtpAsyncClient, @Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture) {
+        this(sessionId, sessionData, sessionConfig, LoggerFactory.getLogger(SslDetectHandler.class), logOpt,
+                smtpAsyncClient, sessionCreatedFuture);
+    }
+
+    /**
+     * Initializes a {@link SslDetectHandler} to detect if native SSL is available for this connection.
+     *
+     * @param sessionId client's session id
+     * @param sessionData connection data for this session
+     * @param sessionConfig configurations for this session
+     * @param logger logger for debugging messages
+     * @param logOpt debugging options
+     * @param smtpAsyncClient Client that holds this connection
+     * @param sessionCreatedFuture SMTP session future
+     */
+    SslDetectHandler(final long sessionId, @Nonnull final SmtpAsyncSessionData sessionData, @Nonnull final SmtpAsyncSessionConfig sessionConfig,
+            @Nonnull final Logger logger, @Nonnull final DebugMode logOpt, @Nonnull final SmtpAsyncClient smtpAsyncClient,
+            @Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture) {
         this.logger = logger;
         this.sessionConfig = sessionConfig;
         this.sessionData = sessionData;
@@ -78,8 +91,9 @@ public class SslDetectHandler extends ByteToMessageDecoder {
     protected void decode(@Nonnull final ChannelHandlerContext ctx, @Nonnull final ByteBuf in, @Nonnull final List<Object> out) {
         // ssl succeeds
         if (this.logger.isTraceEnabled() || this.logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
-            this.logger.debug(SSL_DETECT_REC, this.sessionId, this.sessionData.getSessionContext(), "Available", this.sessionData.getHost(),
-                    this.sessionData.getPort(), true, this.sessionData.getSniNames());
+            this.logger.debug("[{},{}] finish checking native SSL availability. result={}, host={}, port={}, sslEnabled={}, sniNames={}",
+                    this.sessionId, this.sessionData.getSessionContext(), "Available", this.sessionData.getHost(), this.sessionData.getPort(),
+                    this.sessionData.isSslEnabled(), this.sessionData.getSniNames());
         }
         ctx.pipeline().remove(this);
         cleanup();
@@ -87,19 +101,15 @@ public class SslDetectHandler extends ByteToMessageDecoder {
 
     @Override
     public void exceptionCaught(@Nonnull final ChannelHandlerContext ctx, @Nonnull final Throwable cause) {
-
-        final String host = this.sessionData.getHost();
-        final int port = this.sessionData.getPort();
-        final Collection<String> sniNames = this.sessionData.getSniNames();
-        final Object sessionCtx = this.sessionData.getSessionContext();
-
         // ssl failed, re-connect with plain connection
         if (cause.getCause() instanceof NotSslRecordException) {
             close(ctx);
             // if startTls is enabled, try to create a new connection without ssl
-            this.smtpAsyncClient.createStarttlsSession(this.sessionData, this.sessionConfig, this.logOpt, this.sessionCreatedFuture);
+            this.smtpAsyncClient.createStartTlsSession(this.sessionData, this.sessionConfig, this.logOpt, this.sessionCreatedFuture);
             if (this.logger.isTraceEnabled() || this.logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
-                this.logger.debug(SSL_DETECT_REC, this.sessionId, sessionCtx, "Not available", host, port, true, sniNames);
+                this.logger.debug("[{},{}] finish checking native SSL availability. result={}, host={}, port={}, sslEnabled={}, sniNames={}",
+                        this.sessionId, this.sessionData.getSessionContext(), "Not available", this.sessionData.getHost(), this.sessionData.getPort(),
+                        this.sessionData.isSslEnabled(), this.sessionData.getSniNames());
             }
             cleanup();
         } else {

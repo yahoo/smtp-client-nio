@@ -22,7 +22,7 @@ public final class SmtpAsyncSessionConfig {
     private int readTimeoutMillis = DEFAULT_READ_TIMEOUT_MILLIS;
 
     /** Whether to enable Starttls for this client. */
-    private boolean enableStarttls = true;
+    private boolean enableStarttls = false;
 
     /**
      * @return Maximum time for opening a connection before timeout

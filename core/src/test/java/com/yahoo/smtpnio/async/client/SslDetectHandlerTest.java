@@ -212,7 +212,7 @@ public class SslDetectHandlerTest {
 
         // starttls is enabled, try to re-connect
         Assert.assertFalse(smtpFuture.isDone(), "Future shouldn't be done");
-        Mockito.verify(smtpAsyncClient, Mockito.times(1)).createStarttlsSession(sessionData, sessionConfig, DebugMode.DEBUG_ON, smtpFuture);
+        Mockito.verify(smtpAsyncClient, Mockito.times(1)).createStartTlsSession(sessionData, sessionConfig, DebugMode.DEBUG_ON, smtpFuture);
         // verify logger
         Mockito.verify(logger, Mockito.times(1)).debug(Mockito.eq(SSL_DETECT_REC), Mockito.eq(SESSION_ID), Mockito.eq("myCtx"),
                 Mockito.eq("Not available"), Mockito.eq("smtp.one.two.three.com"), Mockito.eq(465), Mockito.eq(true),
@@ -258,7 +258,7 @@ public class SslDetectHandlerTest {
 
         // starttls is enabled, try to re-connect
         Assert.assertFalse(smtpFuture.isDone(), "Future shouldn't be done");
-        Mockito.verify(smtpAsyncClient, Mockito.times(1)).createStarttlsSession(sessionData, sessionConfig, DebugMode.DEBUG_ON, smtpFuture);
+        Mockito.verify(smtpAsyncClient, Mockito.times(1)).createStartTlsSession(sessionData, sessionConfig, DebugMode.DEBUG_ON, smtpFuture);
         // verify logger
         Mockito.verify(logger, Mockito.times(1)).debug(Mockito.eq(SSL_DETECT_REC), Mockito.eq(SESSION_ID), Mockito.eq("myCtx"),
                 Mockito.eq("Not available"), Mockito.eq("smtp.one.two.three.com"), Mockito.eq(465), Mockito.eq(true),
@@ -303,7 +303,7 @@ public class SslDetectHandlerTest {
 
         // starttls is enabled, try to re-connect
         Assert.assertFalse(smtpFuture.isDone(), "Future shouldn't be done");
-        Mockito.verify(smtpAsyncClient, Mockito.times(1)).createStarttlsSession(sessionData, sessionConfig, DebugMode.DEBUG_OFF, smtpFuture);
+        Mockito.verify(smtpAsyncClient, Mockito.times(1)).createStartTlsSession(sessionData, sessionConfig, DebugMode.DEBUG_OFF, smtpFuture);
         // verify logger
         Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.anyLong(), Mockito.anyString(), Mockito.anyString(),
                 Mockito.anyString(), Mockito.anyInt(), Mockito.anyBoolean(), Mockito.anyObject());
@@ -383,7 +383,7 @@ public class SslDetectHandlerTest {
 
         // starttls is enabled, try to re-connect
         Assert.assertFalse(smtpFuture.isDone(), "Future shouldn't be done");
-        Mockito.verify(smtpAsyncClient, Mockito.times(1)).createStarttlsSession(sessionData, sessionConfig, DebugMode.DEBUG_ON, smtpFuture);
+        Mockito.verify(smtpAsyncClient, Mockito.times(1)).createStartTlsSession(sessionData, sessionConfig, DebugMode.DEBUG_ON, smtpFuture);
         // verify logger
         // verify logger
         Mockito.verify(logger, Mockito.times(1)).debug(Mockito.eq(SSL_DETECT_REC), Mockito.eq(SESSION_ID), Mockito.eq("myCtx"),

@@ -53,8 +53,8 @@ public class SmtpAsyncSessionConfigTest {
     @Test
     public void testGetAndSetEnableStarttls() {
         final SmtpAsyncSessionConfig config = new SmtpAsyncSessionConfig();
-        Assert.assertTrue(config.getEnableStarttls(), "Incorrect default enableStarttls flag.");
-        config.setEnableStarttls(false);
-        Assert.assertFalse(config.getEnableStarttls(), "Incorrect enableStarttls flag after calling setter.");
+        Assert.assertFalse(config.getEnableStarttls(), "Incorrect default enableStarttls flag.");
+        config.setEnableStarttls(true);
+        Assert.assertTrue(config.getEnableStarttls(), "Incorrect enableStarttls flag after calling setter.");
     }
 }
