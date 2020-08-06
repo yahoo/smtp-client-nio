@@ -34,16 +34,16 @@ import io.netty.util.concurrent.GenericFutureListener;
 /**
  * This handler is used to implement startTls flow.
  *
- * <p>
  * Starttls flow consists of four steps:
+ * <ul>
+ * <li>1. process server greeting and send EHLO.</li>
  *
- * <li>1. process server greeting and send EHLO.
+ * <li>2. process EHLO response and send STARTTLS. If EHLO failed, send HELO as fall back.</li>
  *
- * <li>2. process EHLO response and send STARTTLS. If EHLO failed, send HELO as fall back.
+ * <li>3. process STARTLS response and upgrade plain connection to ssl connection.</li>
  *
- * <li>3. process STARTLS response and upgrade plain connection to ssl connection.
- *
- * <li>4. wait for ssl connection completed, finish the session future if ssl succeeds, otherwise fails.
+ * <li>4. wait for ssl connection completed, finish the session future if ssl succeeds, otherwise fails.</li>
+ * </ul>
  */
 public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
 
