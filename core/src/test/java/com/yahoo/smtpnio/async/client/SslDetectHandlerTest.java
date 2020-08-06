@@ -10,17 +10,22 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import javax.net.ssl.SSLException;
 
 import org.mockito.Mockito;
+import org.mockito.internal.util.reflection.Whitebox;
 import org.slf4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.yahoo.smtpnio.async.client.SmtpAsyncSession.DebugMode;
+import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
+import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -397,7 +402,7 @@ public class SslDetectHandlerTest {
     }
 
     /**
-     * Tests {@code channelInactive} method.
+     * Tests {@code channelInactive} method during reconnection.
      *
      * @throws IllegalAccessException will not throw in this test
      * @throws IllegalArgumentException will not throw in this test
@@ -405,7 +410,7 @@ public class SslDetectHandlerTest {
      * @throws TimeoutException will not throw in this test
      */
     @Test
-    public void testChannelInactive() throws IllegalArgumentException, IllegalAccessException, InterruptedException, TimeoutException {
+    public void testChannelInactiveReconnecting() throws IllegalArgumentException, IllegalAccessException, InterruptedException, TimeoutException {
         final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<>();
         final SmtpAsyncSessionConfig sessionConfig = new SmtpAsyncSessionConfig().setEnableStarttls(false);
         final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 465, true).setSessionContext("myCtx")
@@ -419,6 +424,50 @@ public class SslDetectHandlerTest {
         final ChannelHandlerContext ctx = Mockito.mock(ChannelHandlerContext.class);
 
         handler.channelInactive(ctx);
-        Assert.assertFalse(smtpFuture.isDone(), "Future shouldn't be done");
+        Assert.assertTrue(smtpFuture.isDone(), "Future shouldn't be done");
+        ExecutionException ex = null;
+        try {
+            smtpFuture.get(5, TimeUnit.MILLISECONDS);
+        } catch (final ExecutionException ee) {
+            ex = ee;
+        }
+        Assert.assertNotNull(ex, "Expect exception to be thrown.");
+        final Throwable cause = ex.getCause();
+        Assert.assertNotNull(cause, "Expect cause.");
+        Assert.assertEquals(cause.getClass(), SmtpAsyncClientException.class, "Expected result mismatched.");
+        final SmtpAsyncClientException aEx = (SmtpAsyncClientException) cause;
+        Assert.assertEquals(aEx.getFailureType(), FailureType.CHANNEL_INACTIVE, "Failure type mismatched");
+
+        // call channelInactive again, should not encounter npe
+        handler.channelInactive(ctx);
     }
+
+    /**
+     * Tests {@code channelInactive} method not during reconnection.
+     *
+     * @throws IllegalAccessException will not throw in this test
+     * @throws IllegalArgumentException will not throw in this test
+     * @throws InterruptedException will not throw in this test
+     * @throws TimeoutException will not throw in this test
+     */
+    @Test
+    public void testChannelInactiveNotReconnecting() throws IllegalArgumentException, IllegalAccessException, InterruptedException, TimeoutException {
+        final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<>();
+        final SmtpAsyncSessionConfig sessionConfig = new SmtpAsyncSessionConfig().setEnableStarttls(false);
+        final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 465, true).setSessionContext("myCtx")
+                .build();
+        final Logger logger = Mockito.mock(Logger.class);
+        final SmtpAsyncClient smtpAsyncClient = Mockito.mock(SmtpAsyncClient.class);
+
+        final SslDetectHandler handler = new SslDetectHandler(SESSION_ID, sessionData, sessionConfig, logger, DebugMode.DEBUG_ON, smtpAsyncClient,
+                smtpFuture);
+        Whitebox.setInternalState(handler, "isReconnecting", true);
+
+        final ChannelHandlerContext ctx = Mockito.mock(ChannelHandlerContext.class);
+
+        handler.channelInactive(ctx);
+        Assert.assertFalse(smtpFuture.isDone(), "Future should be done");
+    }
+
+
 }

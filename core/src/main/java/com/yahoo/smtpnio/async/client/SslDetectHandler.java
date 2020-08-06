@@ -12,6 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.yahoo.smtpnio.async.client.SmtpAsyncSession.DebugMode;
+import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
+import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -46,6 +48,9 @@ public class SslDetectHandler extends ByteToMessageDecoder {
 
     /** Debugging option used. */
     private DebugMode logOpt;
+
+    /** Flag for whether it is during re-connection. */
+    private boolean isReconnecting;
 
     /**
      * Initializes a {@link SslDetectHandler} to detect if native SSL is available for this connection.
@@ -85,6 +90,7 @@ public class SslDetectHandler extends ByteToMessageDecoder {
         this.sessionCreatedFuture = sessionCreatedFuture;
         this.sessionId = sessionId;
         this.smtpAsyncClient = smtpAsyncClient;
+        this.isReconnecting = false;
     }
 
     @Override
@@ -103,6 +109,7 @@ public class SslDetectHandler extends ByteToMessageDecoder {
     public void exceptionCaught(@Nonnull final ChannelHandlerContext ctx, @Nonnull final Throwable cause) {
         // ssl failed, re-connect with plain connection
         if (cause.getCause() instanceof NotSslRecordException) {
+            this.isReconnecting = true;
             close(ctx);
             // if startTls is enabled, try to create a new connection without ssl
             this.smtpAsyncClient.createStartTlsSession(this.sessionData, this.sessionConfig, this.logOpt, this.sessionCreatedFuture);
@@ -131,8 +138,14 @@ public class SslDetectHandler extends ByteToMessageDecoder {
 
     @Override
     public void channelInactive(@Nonnull final ChannelHandlerContext ctx) {
-        // after close() has been called on SslHandler failure, channelInactive() will also be called
-        // this method is used to stop channelInactive chain reaching SmtpClientConnectionHandler
+        // only finish the future with exception when it's not re-connecting
+        if (!this.isReconnecting) {
+            if (sessionCreatedFuture == null) {
+                return; // cleanup() has been called, leave
+            }
+            sessionCreatedFuture
+                    .done(new SmtpAsyncClientException(FailureType.CHANNEL_INACTIVE, this.sessionId, this.sessionData.getSessionContext()));
+        }
         cleanup();
     }
 
