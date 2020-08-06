@@ -278,7 +278,7 @@ public class SslDetectHandlerTest {
      * @throws IllegalAccessException will not throw in this test
      */
     @Test
-    public void testtNotSslRecordExceptionCaughtDebugOff()
+    public void testNotSslRecordExceptionCaughtDebugOff()
             throws InterruptedException, TimeoutException, IllegalArgumentException, IllegalAccessException {
         final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<>();
         final SmtpAsyncSessionConfig sessionConfig = new SmtpAsyncSessionConfig().setEnableStarttls(false);
@@ -323,7 +323,7 @@ public class SslDetectHandlerTest {
      * @throws IllegalAccessException will not throw in this test
      */
     @Test
-    public void testtOtherExceptionCaught() throws InterruptedException, TimeoutException, IllegalArgumentException, IllegalAccessException {
+    public void testOtherExceptionCaught() throws InterruptedException, TimeoutException, IllegalArgumentException, IllegalAccessException {
         final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<>();
         final SmtpAsyncSessionConfig sessionConfig = new SmtpAsyncSessionConfig().setEnableStarttls(false);
         final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 465, true).setSessionContext("myCtx")

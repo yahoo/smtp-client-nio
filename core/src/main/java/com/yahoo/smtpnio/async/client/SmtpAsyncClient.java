@@ -194,7 +194,7 @@ public class SmtpAsyncClient {
                 if (isSsl) {
                     try {
                         sslHandler = createSSLHandler(ch.alloc(), host, port, sniNames);
-                    } catch (SSLException e) {
+                    } catch (final SSLException e) {
                         final SmtpAsyncClientException ex = new SmtpAsyncClientException(FailureType.SSL_CONTEXT_EXCEPTION, e);
                         handleSessionFailed(sessionId, sessionData, ex, sessionCreatedFuture, ch, isSsl);
                         return;

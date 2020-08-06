@@ -555,7 +555,7 @@ public class StarttlsHandlerTest {
      * @throws SmtpAsyncClientException will not throw in this test
      */
     @Test
-    public void testtExceptionCaught()
+    public void testExceptionCaught()
             throws InterruptedException, TimeoutException, IllegalArgumentException, IllegalAccessException, SmtpAsyncClientException {
         final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<>();
         final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 465, true).setSessionContext("myCtx")
