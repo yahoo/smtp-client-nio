@@ -109,10 +109,10 @@ public class SslDetectHandler extends ByteToMessageDecoder {
     public void exceptionCaught(@Nonnull final ChannelHandlerContext ctx, @Nonnull final Throwable cause) {
         // ssl failed, re-connect with plain connection
         if (cause.getCause() instanceof NotSslRecordException) {
-            this.isReconnecting = true;
-            close(ctx);
             // if startTls is enabled, try to create a new connection without ssl
             this.smtpAsyncClient.createStartTlsSession(this.sessionData, this.sessionConfig, this.logOpt, this.sessionCreatedFuture);
+            this.isReconnecting = true;
+            close(ctx);
             if (this.logger.isTraceEnabled() || this.logOpt == SmtpAsyncSession.DebugMode.DEBUG_ON) {
                 this.logger.debug("[{},{}] finish checking native SSL availability. result={}, host={}, port={}, sslEnabled={}, sniNames={}",
                         this.sessionId, this.sessionData.getSessionContext(), "Not available", this.sessionData.getHost(), this.sessionData.getPort(),
