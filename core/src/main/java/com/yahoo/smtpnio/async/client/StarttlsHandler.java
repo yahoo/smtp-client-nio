@@ -38,7 +38,7 @@ import io.netty.util.concurrent.GenericFutureListener;
  * <ul>
  * <li>1. process server greeting and send EHLO.</li>
  *
- * <li>2. process EHLO response and send STARTTLS. If EHLO failed, send HELO as fall back.</li>
+ * <li>2. process EHLO response and send STARTTLS.</li>
  *
  * <li>3. process STARTLS response and upgrade plain connection to ssl connection.</li>
  *
@@ -92,8 +92,8 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
         GET_SERVER_GREETING,
 
         /**
-         * Waiting for EHLO response, send STARTTLS when all responses are good and server has startTls capability. If server doesn't reply 250, try
-         * to send HELO as fallback. If server reply is good but no startTls capability received, it fails the session future.
+         * Waiting for EHLO response, send STARTTLS when all responses are good and server has startTls capability. If server replies bad response or
+         * no startTls capability is received, it fails the session future.
          */
         GET_EHLO_RESP,
 
