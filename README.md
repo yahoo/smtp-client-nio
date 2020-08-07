@@ -25,6 +25,7 @@ Some of the more distinguishing features of this library are:
 - Leverages the well-established framework [Netty](https://netty.io/)
 - Future-based design enables a clean separation of the SMTP client threads pool and the consumers threads pool
 - Simple Mail Transfer Protocol (SMTP) support [RFC 5321](https://tools.ietf.org/html/rfc5321)
+- SMTPS and StartTls support [RFC 3207](https://tools.ietf.org/html/rfc3207)
 - **HELO** command support [RFC 821 (Section 3.5)](https://tools.ietf.org/html/rfc821#section-3.5)
 - **EHLO** command support [RFC 1869 (Section 4)](https://tools.ietf.org/html/rfc1869#section-4)
 - **AUTH** command support [RFC 4954](https://tools.ietf.org/html/rfc4954)
@@ -43,7 +44,7 @@ This library is built and managed using [maven](https://maven.apache.org/what-is
 <dependency>
   <groupId>com.yahoo.smtpnio</groupId>
   <artifactId>smtpnio.core</artifactId>
-  <version>1.0.3</version>
+  <version>1.0.4</version>
 </dependency>
 ```
 
@@ -83,7 +84,8 @@ final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.e
 // Session configurations such as timeouts
 final SmtpAsyncSessionConfig sessionConfig = new SmtpAsyncSessionConfig()
         .setConnectionTimeout(5000)
-        .setReadTimeout(7000);
+        .setReadTimeout(7000)
+        .setEnableStarttls(true); // enable startTls option which is false by default
 
 // Asynchronous call to create a Future containing the session data
 final Future<SmtpAsyncCreateSessionResponse> sessionFuture = smtpClient.createSession(
@@ -145,11 +147,27 @@ smtpClient.shutdown();
 
 ## Release
 
-This release, version 1.0.3, supports the following SMTP commands:
+This release, version 1.0.4, supports the following SMTP commands:
 - **EHLO**
 - **HELO**
 - **AUTH** (PLAIN, LOGIN, XOAUTH2)
 - **QUIT**
+
+Version 1.0.4 adds startTls support.
+- **Both ssl and startTls options are enabled**
+
+     Client will first try normal ssl and detect the connection result. If successful, secure session will be created. If failed, client will close the old connection and create a new plain one. Then try startTls as fallback. 
+
+- **Only startTls option is enabled and ssl is disabled**
+
+     Client won't try normal ssl. StartTls flow will be launched directly.
+
+> Basic startTls flow:
+> 1. Firstly, send EHLO command and check STARTTLS capability in response.
+> 2. Then send STARTTLS command and check if response code is 220.
+> 3. Finally, upgrade plain connection to secure connection.
+
+
 
 ## Contribute
 
