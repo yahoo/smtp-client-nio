@@ -46,4 +46,15 @@ public class SmtpAsyncSessionConfigTest {
         Assert.assertEquals(client.getReadTimeout(), 3000);
         Assert.assertEquals(client.getConnectionTimeout(), 9001);
     }
+
+    /**
+     * Tests the correctness of {@code setEnableStarttls} and {@code getEnableStarttls}.
+     */
+    @Test
+    public void testGetAndSetEnableStarttls() {
+        final SmtpAsyncSessionConfig config = new SmtpAsyncSessionConfig();
+        Assert.assertFalse(config.getEnableStarttls(), "Incorrect default enableStarttls flag.");
+        config.setEnableStarttls(true);
+        Assert.assertTrue(config.getEnableStarttls(), "Incorrect enableStarttls flag after calling setter.");
+    }
 }

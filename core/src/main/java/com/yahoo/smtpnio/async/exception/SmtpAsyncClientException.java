@@ -60,7 +60,28 @@ public class SmtpAsyncClientException extends Exception {
         INVALID_SERVER_RESPONSE("The server response is invalid."),
 
         /** Server asks for more input. An example is the extra prompt after username and password in AUTH LOGIN */
-        MORE_INPUT_THAN_EXPECTED("The server ask for more input than expected");
+        MORE_INPUT_THAN_EXPECTED("The server ask for more input than expected"),
+
+        /** Server replies non-ssl during an ssl enabled connection. */
+        NOT_SSL_RECORD("Server replied non-ssl response during an ssl enabled connection."),
+
+        /** Code reaches an unexpected illegal state. */
+        ILLEGAL_STATE("Reach an illegal state."),
+
+        /** Connection inactive. */
+        CHANNEL_INACTIVE("Channel is inactive."),
+
+        /** Bad response for EHLO command. */
+        BAD_EHLO_RESPONSE("Server response code is not 250 for EHLO command."),
+
+        /** Bad response for STARTTLS command. */
+        BAD_STARTTLS_RESPONSE("Server response code is not 220 for STARTTLS command."),
+
+        /** Fail to create ssl context. */
+        SSL_CONTEXT_EXCEPTION("Failed to create ssl context."),
+
+        /** No STARTTLS capability. */
+        NO_STARTTLS_CAPABILITY("Server has no STARTTLS capability.");
 
         /**
          * Constructor to add an error message for failure type belonging to this enum.

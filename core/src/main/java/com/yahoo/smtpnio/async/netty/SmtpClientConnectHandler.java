@@ -10,6 +10,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.yahoo.smtpnio.async.client.SmtpAsyncCreateSessionResponse;
 import com.yahoo.smtpnio.async.client.SmtpAsyncSession.DebugMode;
@@ -52,12 +53,26 @@ public class SmtpClientConnectHandler extends MessageToMessageDecoder<SmtpRespon
      * Initializes {@link SmtpClientConnectHandler} to process ok greeting after connection.
      *
      * @param sessionFuture SMTP session future, should be set to done once ok is received
-     * @param logger the {@link Logger} instance for {@link SmtpAsyncSessionImpl}
      * @param logOpt logging option for the session to be created
      * @param sessionId the session id
      * @param sessionCtx context for the session information; it is used used for logging
      */
-    public SmtpClientConnectHandler(@Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionFuture, @Nonnull final Logger logger,
+    public SmtpClientConnectHandler(@Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionFuture, @Nonnull final DebugMode logOpt,
+            final long sessionId, @Nullable final Object sessionCtx) {
+        this(sessionFuture, LoggerFactory.getLogger(SmtpClientConnectHandler.class), logOpt, sessionId, sessionCtx);
+    }
+
+    /**
+     * Initializes {@link SmtpClientConnectHandler} to process ok greeting after connection.
+     *
+     * @param sessionFuture SMTP session future, should be set to done once ok is received
+     * @param logger the {@link Logger} instance for {@link SmtpClientConnectHandler}
+     * @param logOpt logging option for the session to be created
+     * @param sessionId the session id
+     * @param sessionCtx context for the session information; it is used used for logging
+     */
+    SmtpClientConnectHandler(@Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionFuture,
+            @Nonnull final Logger logger,
                                     @Nonnull final DebugMode logOpt, final long sessionId, @Nullable final Object sessionCtx) {
         this.sessionCreatedFuture = sessionFuture;
         this.logger = logger;
@@ -71,7 +86,7 @@ public class SmtpClientConnectHandler extends MessageToMessageDecoder<SmtpRespon
      *
      * @param ctx the ChannelHandlerContext
      */
-    private void close(final ChannelHandlerContext ctx) {
+    private void close(@Nonnull final ChannelHandlerContext ctx) {
         if (ctx.channel().isActive()) {
             // closing the channel if server is still active
             ctx.close();
@@ -94,7 +109,7 @@ public class SmtpClientConnectHandler extends MessageToMessageDecoder<SmtpRespon
             logger.error("[{},{}] Server response was not successful:{}", sessionId, sessionCtx, serverResponse.toString());
             sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_INVALID_GREETING_CODE, sessionId, sessionCtx,
                     serverResponse.toString()));
-            close(ctx); // closing the channel if we r not getting a ok greeting
+            close(ctx); // closing the channel if we are not getting a ok greeting
         }
         cleanup();
     }
