@@ -2,7 +2,6 @@
 if [ "${TRAVIS_BRANCH}" == 'master' ] && [ "${TRAVIS_PULL_REQUEST}" == 'false' ]; then
     export GPG_TTY=$(tty)
     mkdir ci/deploy
-    chmod 0400 ci/deploy
 
     openssl aes-256-cbc -pass pass:$GPG_ENCPHRASE -in ci/pubring.gpg.enc -out ci/deploy/pubring.gpg -pbkdf2 -d
     openssl aes-256-cbc -pass pass:$GPG_ENCPHRASE -in ci/secring.gpg.enc -out ci/deploy/secring.gpg -pbkdf2 -d
