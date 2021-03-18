@@ -8,7 +8,7 @@ jdk:
 dist: focal
 before_install:
 install:
-- mvn clean install -Dgpg.skip=true
+- "./ci/before-deploy.sh"
 before_script: 
 script: 
 after_success:
