@@ -193,7 +193,7 @@ public class SmtpAsyncClient {
                 SslHandler sslHandler = null;
                 if (isSsl) {
                     try {
-                        sslHandler = createSSLHandler(ch.alloc(), host, port, sniNames);
+                        sslHandler = createSSLHandler(ch.alloc(), host, port, sniNames, sessionData.getSslContext());
                     } catch (final SSLException e) {
                         final SmtpAsyncClientException ex = new SmtpAsyncClientException(FailureType.SSL_CONTEXT_EXCEPTION, e);
                         handleSessionFailed(sessionId, sessionData, ex, sessionCreatedFuture, ch, isSsl);
@@ -289,8 +289,8 @@ public class SmtpAsyncClient {
      * @throws SSLException on SslContext creation error
      */
     static SslHandler createSSLHandler(@Nonnull final ByteBufAllocator alloc, @Nonnull final String host, final int port,
-            @Nullable final Collection<String> sniNames) throws SSLException {
-        final SslContext sslContext = SslContextBuilder.forClient().build();
+            @Nullable final Collection<String> sniNames, @Nullable SslContext sslCtxt) throws SSLException {
+        final SslContext sslContext = (sslCtxt == null) ? SslContextBuilder.forClient().build(): sslCtxt;
         if (sniNames != null && !sniNames.isEmpty()) { // SNI support
             final List<SNIServerName> serverNames = new ArrayList<>();
             for (final String sni : sniNames) {
