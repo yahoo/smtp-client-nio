@@ -16,6 +16,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import javax.net.ssl.SSLException;
 
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.internal.util.reflection.Whitebox;
@@ -74,13 +76,13 @@ public class SmtpAsyncClientTest {
         final Logger logger = Mockito.mock(Logger.class);
 
         final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
-
         client.createSession(SmtpAsyncSessionData.newBuilder(null, 465, true).build(), new SmtpAsyncSessionConfig(),
                 SmtpAsyncSession.DebugMode.DEBUG_OFF);
     }
 
     /**
      * Tests the behavior of {@code createSession} on a successful SSL connection.
+     * This uses an "injected" default SSLContext.
      *
      * @throws Exception will not throw in this test
      */
@@ -100,8 +102,9 @@ public class SmtpAsyncClientTest {
         Mockito.when(logger.isTraceEnabled()).thenReturn(false);
 
         final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
+        final SslContext sslContext = SslContextBuilder.forClient().build();
         final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 993, true).setSessionContext(
-                "myCtx")
+                "myCtx").setSslContext(sslContext)
                 .build();
 
         final Future<SmtpAsyncCreateSessionResponse> future = client.createSession(sessionData, new SmtpAsyncSessionConfig().setEnableStarttls(true),

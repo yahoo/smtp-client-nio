@@ -290,6 +290,7 @@ public class SmtpAsyncClient {
      */
     static SslHandler createSSLHandler(@Nonnull final ByteBufAllocator alloc, @Nonnull final String host, final int port,
             @Nullable final Collection<String> sniNames, @Nullable SslContext sslCtxt) throws SSLException {
+        // Use the passed SslContext only if non-null. Otherwise build a default client SslContext for use.
         final SslContext sslContext = (sslCtxt == null) ? SslContextBuilder.forClient().build(): sslCtxt;
         if (sniNames != null && !sniNames.isEmpty()) { // SNI support
             final List<SNIServerName> serverNames = new ArrayList<>();
