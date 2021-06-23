@@ -14,10 +14,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
 
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.internal.util.reflection.Whitebox;
@@ -102,9 +101,9 @@ public class SmtpAsyncClientTest {
         Mockito.when(logger.isTraceEnabled()).thenReturn(false);
 
         final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
-        final SslContext sslContext = SslContextBuilder.forClient().build();
+        final SSLContext sslContext = SSLContext.getDefault();
         final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 993, true).setSessionContext(
-                "myCtx").setSslContext(sslContext)
+                "myCtx").setSSLContext(sslContext)
                 .build();
 
         final Future<SmtpAsyncCreateSessionResponse> future = client.createSession(sessionData, new SmtpAsyncSessionConfig().setEnableStarttls(true),

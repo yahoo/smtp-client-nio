@@ -9,15 +9,10 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.List;
 
-import io.netty.handler.ssl.ClientAuth;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.SslProvider;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 
 /**
@@ -37,7 +32,7 @@ public class SmtpAsyncSessionDataTest {
         Assert.assertNull(data.getSniNames(), "SNI name list should be null");
         Assert.assertNull(data.getLocalAddress(), "local address should be null");
         Assert.assertNull(data.getSessionContext(), "session context should be null");
-        Assert.assertNull(data.getSslContext(), "Ssl context should be null");
+        Assert.assertNull(data.getSSLContext(), "Ssl context should be null");
     }
 
     /**
@@ -52,15 +47,11 @@ public class SmtpAsyncSessionDataTest {
         final String context = "UnitTest101";
         final List<String> sniNames = Arrays.asList("Sni1", "Sni2");
         final SSLContext sslCtxt = SSLContext.getDefault();
-        SslContext sslContext = SslContextBuilder.forClient()
-                .sslProvider(SslProvider.JDK).clientAuth(ClientAuth.NONE)
-                .ciphers(Arrays.asList(sslCtxt.getDefaultSSLParameters().getCipherSuites()))
-                .build();
         final SmtpAsyncSessionData data = SmtpAsyncSessionData.newBuilder("my_host.smtp.org", 587, false)
                 .setSniNames(sniNames)
                 .setLocalAddress(localAddress)
                 .setSessionContext(context)
-                .setSslContext(sslContext)
+                .setSSLContext(sslCtxt)
                 .build();
 
         Assert.assertEquals(data.getHost(), "my_host.smtp.org", "Unexpected host");
@@ -69,6 +60,6 @@ public class SmtpAsyncSessionDataTest {
         Assert.assertSame(data.getSniNames(), sniNames, "SNI name list should be same");
         Assert.assertSame(data.getLocalAddress(), localAddress, "local address should be same");
         Assert.assertEquals(data.getSessionContext(), "UnitTest101", "session context should match");
-        Assert.assertSame(data.getSslContext(), sslContext, "Ssl context should be same");
+        Assert.assertSame(data.getSSLContext(), sslCtxt, "Ssl context should be same");
     }
 }

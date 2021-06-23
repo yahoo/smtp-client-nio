@@ -221,7 +221,7 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
                 try {
                     // create sslHandler
                     final SslHandler sslHandler = SmtpAsyncClient.createSSLHandler(ctx.alloc(), this.sessionData.getHost(),
-                            this.sessionData.getPort(), this.sessionData.getSniNames(), this.sessionData.getSslContext());
+                            this.sessionData.getPort(), this.sessionData.getSniNames(), this.sessionData.getSSLContext());
                     // add listener to check if ssl connection succeeds
                     sslHandler.handshakeFuture().addListener(new SSLHandShakeCompleteListener(serverResponse, ctx));
                     ctx.pipeline().addFirst(SSL_HANDLER_NAME, sslHandler);

@@ -4,13 +4,12 @@
  */
 package com.yahoo.smtpnio.async.client;
 
-import io.netty.handler.ssl.SslContext;
-
 import java.net.InetSocketAddress;
 import java.util.Collection;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.net.ssl.SSLContext;
 
 /**
  * This class defines session data associated with {@link SmtpAsyncClient}.
@@ -40,11 +39,11 @@ public final class SmtpAsyncSessionData {
     private final Object sessionContext;
 
     /**
-     * {@link SslContext} to be used for the session.
+     * {@link SSLContext} to be used for the session.
      *
      */
     @Nullable
-    private final SslContext sslContext;
+    private final SSLContext sslContext;
     /**
      * Builder class to build {@link SmtpAsyncSessionData} instances.
      */
@@ -72,9 +71,9 @@ public final class SmtpAsyncSessionData {
         @Nullable
         private Object sessionContext;
 
-        /** SslContext to be used for the session. */
+        /** SSLContext to be used for the session. */
         @Nullable
-        private SslContext sslContext;
+        private SSLContext sslContext;
 
         /**
          * Initializes a builder for {@link SmtpAsyncSessionData}.
@@ -120,7 +119,7 @@ public final class SmtpAsyncSessionData {
          * @param sslCtx Ssl context
          * @return {@code this} object for chaining
          */
-        public DataBuilder setSslContext(@Nonnull final SslContext sslCtx) {
+        public DataBuilder setSSLContext(@Nonnull final SSLContext sslCtx) {
             this.sslContext = sslCtx;
             return this;
         }
@@ -160,7 +159,7 @@ public final class SmtpAsyncSessionData {
      */
     private SmtpAsyncSessionData(@Nonnull final String host, final int port, final boolean enableSsl, @Nullable final Collection<String> sniNames,
                                  @Nullable final InetSocketAddress localAddress, @Nullable final Object sessionCtx,
-                                 @Nullable final SslContext sslCtx) {
+                                 @Nullable final SSLContext sslCtx) {
         this.host = host;
         this.port = port;
         this.enableSsl = enableSsl;
@@ -220,7 +219,7 @@ public final class SmtpAsyncSessionData {
      * @return Ssl context
      */
     @Nullable
-    public SslContext getSslContext() {
+    public SSLContext getSSLContext() {
         return sslContext;
     }
 
