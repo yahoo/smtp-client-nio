@@ -9,6 +9,7 @@ import java.util.Collection;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.net.ssl.SSLContext;
 
 /**
  * This class defines session data associated with {@link SmtpAsyncClient}.
@@ -38,6 +39,12 @@ public final class SmtpAsyncSessionData {
     private final Object sessionContext;
 
     /**
+     * {@link SSLContext} to be used for the session.
+     *
+     */
+    @Nullable
+    private final SSLContext sslContext;
+    /**
      * Builder class to build {@link SmtpAsyncSessionData} instances.
      */
     public static final class DataBuilder {
@@ -63,6 +70,10 @@ public final class SmtpAsyncSessionData {
         /** Context associated with the session. */
         @Nullable
         private Object sessionContext;
+
+        /** SSLContext to be used for the session. */
+        @Nullable
+        private SSLContext sslContext;
 
         /**
          * Initializes a builder for {@link SmtpAsyncSessionData}.
@@ -105,12 +116,21 @@ public final class SmtpAsyncSessionData {
         }
 
         /**
+         * @param sslCtx Ssl context
+         * @return {@code this} object for chaining
+         */
+        public DataBuilder setSSLContext(@Nonnull final SSLContext sslCtx) {
+            this.sslContext = sslCtx;
+            return this;
+        }
+
+        /**
          * Builds the {@link SmtpAsyncSessionData} with the set properties.
          *
          * @return an {@link SmtpAsyncSessionData} instance
          */
         public SmtpAsyncSessionData build() {
-            return new SmtpAsyncSessionData(host, port, enableSsl, sniNames, localAddress, sessionContext);
+            return new SmtpAsyncSessionData(host, port, enableSsl, sniNames, localAddress, sessionContext, sslContext);
         }
     }
 
@@ -135,15 +155,18 @@ public final class SmtpAsyncSessionData {
      * @param sniNames collection of SNI names
      * @param localAddress local address to be used
      * @param sessionCtx session context
+     * @param sslCtx Ssl Context to be used
      */
     private SmtpAsyncSessionData(@Nonnull final String host, final int port, final boolean enableSsl, @Nullable final Collection<String> sniNames,
-                                 @Nullable final InetSocketAddress localAddress, @Nullable final Object sessionCtx) {
+                                 @Nullable final InetSocketAddress localAddress, @Nullable final Object sessionCtx,
+                                 @Nullable final SSLContext sslCtx) {
         this.host = host;
         this.port = port;
         this.enableSsl = enableSsl;
         this.sniNames = sniNames;
         this.localAddress = localAddress;
         this.sessionContext = sessionCtx;
+        this.sslContext = sslCtx;
     }
 
     /**
@@ -191,4 +214,13 @@ public final class SmtpAsyncSessionData {
     public Object getSessionContext() {
         return sessionContext;
     }
+
+    /**
+     * @return Ssl context
+     */
+    @Nullable
+    public SSLContext getSSLContext() {
+        return sslContext;
+    }
+
 }

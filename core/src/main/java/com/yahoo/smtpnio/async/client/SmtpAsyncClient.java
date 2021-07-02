@@ -17,10 +17,13 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.SNIServerName;
+import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 
+import io.netty.handler.ssl.ClientAuth;
+import io.netty.handler.ssl.JdkSslContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -193,7 +196,7 @@ public class SmtpAsyncClient {
                 SslHandler sslHandler = null;
                 if (isSsl) {
                     try {
-                        sslHandler = createSSLHandler(ch.alloc(), host, port, sniNames);
+                        sslHandler = createSSLHandler(ch.alloc(), host, port, sniNames, sessionData.getSSLContext());
                     } catch (final SSLException e) {
                         final SmtpAsyncClientException ex = new SmtpAsyncClientException(FailureType.SSL_CONTEXT_EXCEPTION, e);
                         handleSessionFailed(sessionId, sessionData, ex, sessionCreatedFuture, ch, isSsl);
@@ -285,12 +288,14 @@ public class SmtpAsyncClient {
      * @param host host name of server
      * @param port port of server
      * @param sniNames collection of SNI names
+     * @param sslCtxt Optional Custom SSLContext
      * @return a SslHandlerBuilder object used to build {@link SslHandler}
      * @throws SSLException on SslContext creation error
      */
     static SslHandler createSSLHandler(@Nonnull final ByteBufAllocator alloc, @Nonnull final String host, final int port,
-            @Nullable final Collection<String> sniNames) throws SSLException {
-        final SslContext sslContext = SslContextBuilder.forClient().build();
+            @Nullable final Collection<String> sniNames, @Nullable final SSLContext sslCtxt) throws SSLException {
+        // Use the passed SslContext only if non-null. Otherwise build a default client SslContext for use.
+        final SslContext sslContext = (sslCtxt == null) ? SslContextBuilder.forClient().build() : new JdkSslContext(sslCtxt, true, ClientAuth.NONE);
         if (sniNames != null && !sniNames.isEmpty()) { // SNI support
             final List<SNIServerName> serverNames = new ArrayList<>();
             for (final String sni : sniNames) {
