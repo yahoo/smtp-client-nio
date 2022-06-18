@@ -65,7 +65,7 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
          * @param serverResponse server greeting response
          * @param ctx handler context
          */
-        public SSLHandShakeCompleteListener(@Nonnull final SmtpResponse serverResponse, @Nonnull final ChannelHandlerContext ctx) {
+        SSLHandShakeCompleteListener(@Nonnull final SmtpResponse serverResponse, @Nonnull final ChannelHandlerContext ctx) {
             this.serverResponse = serverResponse;
             this.ctx = ctx;
         }
