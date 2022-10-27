@@ -48,7 +48,7 @@ final class SmtpClientChannelInitializer extends ChannelInitializer<SocketChanne
      * @param readTimeoutValue timeout value for server not responding after write command is sent
      * @param unit the unit {@code readTimeoutValue} is measured in
      */
-    public SmtpClientChannelInitializer(final int readTimeoutValue, final TimeUnit unit) {
+    SmtpClientChannelInitializer(final int readTimeoutValue, final TimeUnit unit) {
         this.readTimeoutValue = readTimeoutValue;
         this.timeUnit = unit;
     }

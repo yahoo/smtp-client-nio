@@ -163,9 +163,15 @@ public class SmtpResponse {
      */
     public ReplyType getReplyType() {
         final char firstDigit = response.charAt(0);
-        if (firstDigit == '2') { return ReplyType.POSITIVE_COMPLETION; }
-        if (firstDigit == '3') { return ReplyType.POSITIVE_INTERMEDIATE; }
-        if (firstDigit == '4') { return ReplyType.NEGATIVE_TRANSIENT; }
+        if (firstDigit == '2') {
+            return ReplyType.POSITIVE_COMPLETION;
+        }
+        if (firstDigit == '3') {
+            return ReplyType.POSITIVE_INTERMEDIATE;
+        }
+        if (firstDigit == '4') {
+            return ReplyType.NEGATIVE_TRANSIENT;
+        }
         return ReplyType.NEGATIVE_PERMANENT;
     }
 
