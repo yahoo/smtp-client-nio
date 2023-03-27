@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import javax.annotation.Nonnull;
 
@@ -39,6 +40,81 @@ public class SmtpFuture<V> implements Future<V> {
     /** holds the result object. */
     private final AtomicReference<V> resultRef = new AtomicReference<>();
 
+    /** Callback called when the future completes. */
+    private Consumer<V> doneCallback = new Consumer<V>() {
+        @Override
+        public void accept(final V v) {
+
+        }
+    };
+
+    /** Callback called when the future fails. */
+    private Consumer<Exception> exceptionCallback = new Consumer<Exception>() {
+        @Override
+        public void accept(final Exception e) {
+
+        }
+    };
+
+    /** Callback called when the future is cancelled. */
+    private Runnable canceledCallback = new Runnable() {
+        @Override
+        public void run() {
+
+        }
+    };
+
+    /**
+     * Registers a callback to be called when the future completes. If the future is already done, the callback
+     * is run straight away.
+     *
+     * Be aware that this callback might run on the Netty event loop thus avoid blocking calls.
+     *
+     * @param doneCallback the callback to register
+     */
+    public void setDoneCallback(final Consumer<V> doneCallback) {
+        synchronized (lock) {
+            this.doneCallback = doneCallback;
+            if (resultRef.get() != null) {
+                doneCallback.accept(resultRef.get());
+            }
+        }
+    }
+
+    /**
+     * Registers a callback to be called when the future fails. If the future did already failed, the callback
+     * is run straight away.
+     *
+     * Be aware that this callback might run on the Netty event loop thus avoid blocking calls.
+     *
+     * @param exceptionCallback the callback to register
+     */
+    public void setExceptionCallback(final Consumer<Exception> exceptionCallback) {
+        synchronized (lock) {
+            this.exceptionCallback = exceptionCallback;
+            if (causeRef.get() != null && !isCancelled()) {
+                exceptionCallback.accept(causeRef.get());
+            }
+        }
+    }
+
+    /**
+     * Registers a callback to be called when the future is cancelled. If the future is already canceled, the callback
+     * is run straight away.
+     *
+     * Be aware that this callback might run on the Netty event loop thus avoid blocking calls.
+     *
+     * @param canceledCallback the callback to register
+     */
+    public void setCanceledCallback(final Runnable canceledCallback) {
+        synchronized (lock) {
+            this.canceledCallback = canceledCallback;
+            if (isCancelled()) {
+                canceledCallback.run();
+            }
+        }
+    }
+
     /**
      * Is this Future cancelled?
      *
@@ -62,6 +138,7 @@ public class SmtpFuture<V> implements Future<V> {
     @Override
     public boolean cancel(final boolean mayInterruptIfRunning) {
         done(new CancellationException(), true);
+        canceledCallback.run();
         return true; // returned flag means success in setting cancel state.
     }
 
@@ -77,6 +154,7 @@ public class SmtpFuture<V> implements Future<V> {
                 isDone.set(true);
             }
             lock.notify();
+            doneCallback.accept(result);
         }
     }
 
@@ -101,6 +179,9 @@ public class SmtpFuture<V> implements Future<V> {
                 causeRef.set(cause);
                 isDone.set(true);
                 isCancelled.set(cancelled);
+                if (!cancelled) {
+                    exceptionCallback.accept(cause);
+                }
             }
             lock.notify();
         }
