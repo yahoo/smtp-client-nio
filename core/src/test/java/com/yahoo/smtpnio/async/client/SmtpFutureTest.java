@@ -15,6 +15,8 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
@@ -184,4 +186,347 @@ public class SmtpFutureTest {
         final long mockTimeoutForFailure = 1L;
         smtpFuture.get(mockTimeoutForFailure, TimeUnit.MILLISECONDS);
     }
+
+    /**
+     * Tests to verify error callback is not called when the future is cancelled.
+     */
+    @Test
+    public void testFutureErrorCallbackUponCancelled() {
+        final AtomicBoolean called = new AtomicBoolean(false);
+        final SmtpFuture<SmtpAsyncResponse> smtpFuture = new SmtpFuture<SmtpAsyncResponse>();
+        smtpFuture.setExceptionCallback(new Consumer<Exception>() {
+            @Override
+            public void accept(final Exception e) {
+                called.set(true);
+            }
+        });
+        smtpFuture.cancel(true);
+
+        Assert.assertFalse(called.get(), "Callback should not be run");
+    }
+
+    /**
+     * Tests to verify error callback is not called when the future is done.
+     */
+    @Test
+    public void testFutureErrorCallbackUponDone() {
+        final AtomicBoolean called = new AtomicBoolean(false);
+        final SmtpFuture<Boolean> smtpFuture = new SmtpFuture<Boolean>();
+        smtpFuture.setExceptionCallback(new Consumer<Exception>() {
+            @Override
+            public void accept(final Exception e) {
+                called.set(true);
+            }
+        });
+        smtpFuture.done(false);
+
+        Assert.assertFalse(called.get(), "Callback should not be run");
+    }
+
+    /**
+     * Tests to verify error callback is called when the future fails.
+     */
+    @Test
+    public void testFutureErrorCallbackUponException() {
+        final AtomicBoolean called = new AtomicBoolean(false);
+        final SmtpFuture<Boolean> smtpFuture = new SmtpFuture<Boolean>();
+        smtpFuture.setExceptionCallback(new Consumer<Exception>() {
+            @Override
+            public void accept(final Exception e) {
+                called.set(true);
+            }
+        });
+        smtpFuture.done(new RuntimeException());
+
+        Assert.assertTrue(called.get(), "Callback should be run");
+    }
+
+    /**
+     * Tests to verify done callback is not called when the future is cancelled.
+     */
+    @Test
+    public void testFutureDoneCallbackUponCancelled() {
+        final AtomicBoolean called = new AtomicBoolean(false);
+        final SmtpFuture<SmtpAsyncResponse> smtpFuture = new SmtpFuture<SmtpAsyncResponse>();
+        smtpFuture.setDoneCallback(new Consumer<SmtpAsyncResponse>() {
+            @Override
+            public void accept(final SmtpAsyncResponse imapAsyncResponse) {
+                called.set(true);
+            }
+        });
+        smtpFuture.cancel(true);
+
+        Assert.assertFalse(called.get(), "Callback should not be run");
+    }
+
+    /**
+     * Tests to verify done callback is called when the future is done.
+     */
+    @Test
+    public void testFutureDoneCallbackUponDone() {
+        final AtomicBoolean called = new AtomicBoolean(false);
+        final SmtpFuture<Boolean> smtpFuture = new SmtpFuture<Boolean>();
+        smtpFuture.setDoneCallback(new Consumer<Boolean>() {
+            @Override
+            public void accept(final Boolean r) {
+                called.set(true);
+            }
+        });
+        smtpFuture.done(false);
+
+        Assert.assertTrue(called.get(), "Callback should be run");
+    }
+
+    /**
+     * Tests to verify done callback is not called when the future fails.
+     */
+    @Test
+    public void testFutureDoneCallbackUponException() {
+        final AtomicBoolean called = new AtomicBoolean(false);
+        final SmtpFuture<Boolean> smtpFuture = new SmtpFuture<Boolean>();
+        smtpFuture.setDoneCallback(new Consumer<Boolean>() {
+            @Override
+            public void accept(final Boolean r) {
+                called.set(true);
+            }
+        });
+        smtpFuture.done(new RuntimeException());
+
+        Assert.assertFalse(called.get(), "Callback should not be run");
+    }
+
+    /**
+     * Tests to verify cancel callback is called when the future is cancelled.
+     */
+    @Test
+    public void testFutureCancelCallbackUponCancelled() {
+        final AtomicBoolean called = new AtomicBoolean(false);
+        final SmtpFuture<SmtpAsyncResponse> smtpFuture = new SmtpFuture<SmtpAsyncResponse>();
+        smtpFuture.setCanceledCallback(new Runnable() {
+            @Override
+            public void run() {
+                called.set(true);
+            }
+        });
+        smtpFuture.cancel(true);
+
+        Assert.assertTrue(called.get(), "Callback should be run");
+    }
+
+    /**
+     * Tests to verify cancel callback is not called when the future is done.
+     */
+    @Test
+    public void testFutureCancelCallbackUponDone() {
+        final AtomicBoolean called = new AtomicBoolean(false);
+        final SmtpFuture<Boolean> smtpFuture = new SmtpFuture<Boolean>();
+        smtpFuture.setCanceledCallback(new Runnable() {
+            @Override
+            public void run() {
+                called.set(true);
+            }
+        });
+        smtpFuture.done(false);
+
+        Assert.assertFalse(called.get(), "Callback should not be run");
+    }
+
+    /**
+     * Tests to verify cancel callback is not called when the future fails.
+     */
+    @Test
+    public void testFutureCancelCallbackUponException() {
+        final AtomicBoolean called = new AtomicBoolean(false);
+        final SmtpFuture<Boolean> smtpFuture = new SmtpFuture<Boolean>();
+        smtpFuture.setCanceledCallback(new Runnable() {
+            @Override
+            public void run() {
+                called.set(true);
+            }
+        });
+        smtpFuture.done(new RuntimeException());
+
+        Assert.assertFalse(called.get(), "Callback should not be run");
+    }
+
+    /**
+     * Tests to verify error callback is not called when the future is cancelled.
+     *
+     * The future execution is already finished when the callback is registered.
+     */
+    @Test
+    public void testFutureErrorCallbackUponCancelledWhenFinished() {
+        final AtomicBoolean called = new AtomicBoolean(false);
+        final SmtpFuture<SmtpAsyncResponse> smtpFuture = new SmtpFuture<SmtpAsyncResponse>();
+        smtpFuture.cancel(true);
+        smtpFuture.setExceptionCallback(new Consumer<Exception>() {
+            @Override
+            public void accept(final Exception e) {
+                called.set(true);
+            }
+        });
+
+        Assert.assertFalse(called.get(), "Callback should not be run");
+    }
+
+    /**
+     * Tests to verify error callback is not called when the future is done.
+     *
+     * The future execution is already finished when the callback is registered.
+     */
+    @Test
+    public void testFutureErrorCallbackUponDoneWhenFinished() {
+        final AtomicBoolean called = new AtomicBoolean(false);
+        final SmtpFuture<Boolean> smtpFuture = new SmtpFuture<Boolean>();
+        smtpFuture.done(false);
+        smtpFuture.setExceptionCallback(new Consumer<Exception>() {
+            @Override
+            public void accept(final Exception e) {
+                called.set(true);
+            }
+        });
+
+        Assert.assertFalse(called.get(), "Callback should not be run");
+    }
+
+    /**
+     * Tests to verify error callback is called when the future fails.
+     *
+     * The future execution is already finished when the callback is registered.
+     */
+    @Test
+    public void testFutureErrorCallbackUponExceptionWhenFinished() {
+        final AtomicBoolean called = new AtomicBoolean(false);
+        final SmtpFuture<Boolean> smtpFuture = new SmtpFuture<Boolean>();
+        smtpFuture.done(new RuntimeException());
+        smtpFuture.setExceptionCallback(new Consumer<Exception>() {
+            @Override
+            public void accept(final Exception e) {
+                called.set(true);
+            }
+        });
+
+        Assert.assertTrue(called.get(), "Callback should be run");
+    }
+
+    /**
+     * Tests to verify done callback is not called when the future is cancelled.
+     *
+     * The future execution is already finished when the callback is registered.
+     */
+    @Test
+    public void testFutureDoneCallbackUponCancelledWhenFinished() {
+        final AtomicBoolean called = new AtomicBoolean(false);
+        final SmtpFuture<SmtpAsyncResponse> smtpFuture = new SmtpFuture<SmtpAsyncResponse>();
+        smtpFuture.cancel(true);
+        smtpFuture.setDoneCallback(new Consumer<SmtpAsyncResponse>() {
+            @Override
+            public void accept(final SmtpAsyncResponse imapAsyncResponse) {
+                called.set(true);
+            }
+        });
+
+        Assert.assertFalse(called.get(), "Callback should not be run");
+    }
+
+    /**
+     * Tests to verify done callback is called when the future is done.
+     *
+     * The future execution is already finished when the callback is registered.
+     */
+    @Test
+    public void testFutureDoneCallbackUponDoneWhenFinished() {
+        final AtomicBoolean called = new AtomicBoolean(false);
+        final SmtpFuture<Boolean> smtpFuture = new SmtpFuture<Boolean>();
+        smtpFuture.done(false);
+        smtpFuture.setDoneCallback(new Consumer<Boolean>() {
+            @Override
+            public void accept(final Boolean r) {
+                called.set(true);
+            }
+        });
+
+        Assert.assertTrue(called.get(), "Callback should be run");
+    }
+
+    /**
+     * Tests to verify done callback is not called when the future fails.
+     *
+     * The future execution is already finished when the callback is registered.
+     */
+    @Test
+    public void testFutureDoneCallbackUponExceptionWhenFinished() {
+        final AtomicBoolean called = new AtomicBoolean(false);
+        final SmtpFuture<Boolean> smtpFuture = new SmtpFuture<Boolean>();
+        smtpFuture.done(new RuntimeException());
+        smtpFuture.setDoneCallback(new Consumer<Boolean>() {
+            @Override
+            public void accept(final Boolean r) {
+                called.set(true);
+            }
+        });
+
+        Assert.assertFalse(called.get(), "Callback should not be run");
+    }
+
+    /**
+     * Tests to verify cancel callback is called when the future is cancelled.
+     *
+     * The future execution is already finished when the callback is registered.
+     */
+    @Test
+    public void testFutureCancelCallbackUponCancelledWhenFinished() {
+        final AtomicBoolean called = new AtomicBoolean(false);
+        final SmtpFuture<SmtpAsyncResponse> smtpFuture = new SmtpFuture<SmtpAsyncResponse>();
+        smtpFuture.cancel(true);
+        smtpFuture.setCanceledCallback(new Runnable() {
+            @Override
+            public void run() {
+                called.set(true);
+            }
+        });
+
+        Assert.assertTrue(called.get(), "Callback should be run");
+    }
+
+    /**
+     * Tests to verify cancel callback is not called when the future is done.
+     *
+     * The future execution is already finished when the callback is registered.
+     */
+    @Test
+    public void testFutureCancelCallbackUponDoneWhenFinished() {
+        final AtomicBoolean called = new AtomicBoolean(false);
+        final SmtpFuture<Boolean> smtpFuture = new SmtpFuture<Boolean>();
+        smtpFuture.done(false);
+        smtpFuture.setCanceledCallback(new Runnable() {
+            @Override
+            public void run() {
+                called.set(true);
+            }
+        });
+
+        Assert.assertFalse(called.get(), "Callback should not be run");
+    }
+
+    /**
+     * Tests to verify cancel callback is not called when the future fails.
+     *
+     * The future execution is already finished when the callback is registered.
+     */
+    @Test
+    public void testFutureCancelCallbackUponExceptionWhenFinished() {
+        final AtomicBoolean called = new AtomicBoolean(false);
+        final SmtpFuture<Boolean> smtpFuture = new SmtpFuture<Boolean>();
+        smtpFuture.done(new RuntimeException());
+        smtpFuture.setCanceledCallback(new Runnable() {
+            @Override
+            public void run() {
+                called.set(true);
+            }
+        });
+
+        Assert.assertFalse(called.get(), "Callback should not be run");
+    }
+
 }
