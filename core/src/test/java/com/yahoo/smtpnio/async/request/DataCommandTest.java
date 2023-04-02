@@ -57,10 +57,10 @@ public class DataCommandTest {
      * @throws MessagingException will not throw in this test
      */
     @Test
-    public void testGetCommandLineEmpty() throws SmtpAsyncClientException, IllegalAccessException, MessagingException {
+    public void testGetCommandLineEmpty() throws SmtpAsyncClientException, IllegalAccessException, MessagingException, IOException {
         SMTPMessage msg = new SMTPMessage((Session) null);
         msg.setText("");
-        final SmtpRequest cmd = new DataCommand(msg);
+        final SmtpRequest cmd = DataCommand.fromSmtpMessage(msg);
         Assert.assertEquals(cmd.getCommandLineBytes().toString(StandardCharsets.US_ASCII), "DATA\r\n",
                 "Expected results mismatched");
         final String message = cmd.getNextCommandLineAfterContinuation(new SmtpResponse("200 123-Not needed"))
@@ -79,10 +79,10 @@ public class DataCommandTest {
      * @throws IllegalAccessException will not throw in this test
      */
     @Test
-    public void testConstructor() throws IllegalAccessException {
-        SMTPMessage msg = new SMTPMessage((Session) null);
-        final DataCommand cmd = new DataCommand(msg);
-        Assert.assertSame(cmd.getMessage(), msg, "Wrong message");
+    public void testConstructor() throws IllegalAccessException, IOException, MessagingException {
+        final byte[] payload = "data".getBytes();
+        final DataCommand cmd = new DataCommand(() -> payload);
+        Assert.assertSame(cmd.getMessage(), payload, "Wrong message");
         cmd.cleanup();
         // Verify if cleanup happened correctly.
         for (final Field field : fieldsToCheck) {
@@ -99,7 +99,7 @@ public class DataCommandTest {
      * @throws MessagingException will not throw in this test
      */
     @Test
-    public void testSetHeaders() throws SmtpAsyncClientException, IllegalAccessException, MessagingException {
+    public void testSetHeaders() throws SmtpAsyncClientException, IllegalAccessException, MessagingException, IOException {
         SMTPMessage msg = new SMTPMessage((Session) null);
         msg.setText("");
 
@@ -109,7 +109,7 @@ public class DataCommandTest {
         msg.setHeader("To", "my best friend");
         msg.setSubject("long time no see!", "UTF-8");
 
-        final SmtpRequest cmd = new DataCommand(msg);
+        final SmtpRequest cmd = DataCommand.fromSmtpMessage(msg);
 
         Assert.assertEquals(cmd.getCommandLineBytes().toString(StandardCharsets.US_ASCII), "DATA\r\n",
                 "Expected results mismatched");
@@ -137,10 +137,10 @@ public class DataCommandTest {
      * @throws MessagingException will not throw in this test
      */
     @Test
-    public void testSetBody() throws SmtpAsyncClientException, IllegalAccessException, MessagingException {
+    public void testSetBody() throws SmtpAsyncClientException, IllegalAccessException, MessagingException, IOException {
         SMTPMessage msg = new SMTPMessage((Session) null);
         msg.setText("Hi Bart,\n\nThis is a reminder that you have outstanding payments due soon.");
-        final SmtpRequest cmd = new DataCommand(msg);
+        final SmtpRequest cmd = DataCommand.fromSmtpMessage(msg);
         Assert.assertEquals(cmd.getCommandLineBytes().toString(StandardCharsets.US_ASCII), "DATA\r\n",
                 "Expected results mismatched");
         final String message = cmd.getNextCommandLineAfterContinuation(new SmtpResponse("200 123-Not needed"))
@@ -169,8 +169,7 @@ public class DataCommandTest {
         msg.setSubject("Hello World!", String.valueOf(StandardCharsets.UTF_8));
         msg.setText("哈咯，这是一些中文测试子。कुछ हिंदी पाठ", String.valueOf(StandardCharsets.UTF_8));
 
-        final DataCommand cmd = new DataCommand(msg);
-        Assert.assertSame(msg, cmd.getMessage());
+        final DataCommand cmd = DataCommand.fromSmtpMessage(msg);
         Assert.assertEquals(cmd.getCommandLineBytes().toString(StandardCharsets.US_ASCII), "DATA\r\n",
                 "Expected results mismatched");
 
@@ -196,7 +195,7 @@ public class DataCommandTest {
     @Test
     public void testSmtpMessageFail() throws IOException, MessagingException, SmtpAsyncClientException {
         final SMTPMessage msg = Mockito.mock(SMTPMessage.class);
-        final DataCommand cmd = new DataCommand(msg);
+        final DataCommand cmd = DataCommand.fromSmtpMessage(msg);
 
         Mockito.doThrow(new IOException()).when(msg).writeTo(Mockito.any());
         Assert.assertNull(cmd.getNextCommandLineAfterContinuation(new SmtpResponse("555 bad")));
@@ -209,23 +208,23 @@ public class DataCommandTest {
      * Tests the {@code getCommandType} method.
      */
     @Test
-    public void testGetCommandType() {
-        Assert.assertSame(new DataCommand(new SMTPMessage((Session) null)).getCommandType(), SmtpRFCSupportedCommandType.DATA);
+    public void testGetCommandType() throws IOException, MessagingException {
+        Assert.assertSame(DataCommand.fromSmtpMessage(new SMTPMessage((Session) null)).getCommandType(), SmtpRFCSupportedCommandType.DATA);
     }
 
     /**
      * Tests the {@code isCommandLineSensitive} method.
      */
     @Test
-    public void testIsCommandSensitive() {
-        Assert.assertFalse(new DataCommand(new SMTPMessage((Session) null)).isCommandLineDataSensitive());
+    public void testIsCommandSensitive() throws IOException, MessagingException {
+        Assert.assertFalse(DataCommand.fromSmtpMessage(new SMTPMessage((Session) null)).isCommandLineDataSensitive());
     }
 
     /**\
      * Tests the {@code getDebugData} method.
      */
     @Test
-    public void testGetDebugData() {
-        Assert.assertEquals(new DataCommand(new SMTPMessage((Session) null)).getDebugData(), "");
+    public void testGetDebugData() throws IOException, MessagingException {
+        Assert.assertEquals(DataCommand.fromSmtpMessage(new SMTPMessage((Session) null)).getDebugData(), "");
     }
 }

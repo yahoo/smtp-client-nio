@@ -7,6 +7,7 @@ package com.yahoo.smtpnio.async.request;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 import javax.mail.MessagingException;
@@ -22,42 +23,61 @@ import io.netty.buffer.Unpooled;
  */
 public class DataCommand extends AbstractSmtpCommand {
 
-    /** String literal for "DATA". */
-    private static final String DATA = "DATA";
-
-    /** The message to be sent. */
-    private SMTPMessage message;
-
     /**
      * Initializes a DATA command object that contains the message to be sent.
      *
      * @param message a {@link SMTPMessage} containing the message
+     * @return the corresponding DATA command
      */
-    public DataCommand(@Nonnull final SMTPMessage message) {
+    public static DataCommand fromSmtpMessage(final SMTPMessage message) {
+        return new DataCommand(new Supplier<byte[]>() {
+            @Override
+            public byte[] get() {
+                final ByteArrayOutputStream output = new ByteArrayOutputStream();
+                try {
+                    message.writeTo(output);
+                    return output.toByteArray();
+                } catch (IOException | MessagingException e) {
+                    return null;
+                }
+            }
+        });
+    }
+
+    /** String literal for "DATA". */
+    private static final String DATA = "DATA";
+
+    /** The message to be sent. */
+    private Supplier<byte[]> message;
+
+    /**
+     * Initializes a DATA command object that contains the message to be sent.
+     *
+     * @param message a {@link Supplier} representing the message (Supplier of byte array)
+     */
+    public DataCommand(@Nonnull final Supplier<byte[]> message) {
         super(DATA);
         this.message = message;
     }
 
     @Override
     public ByteBuf getNextCommandLineAfterContinuation(@Nonnull final SmtpResponse serverResponse) {
-        try {
-            final ByteArrayOutputStream output = new ByteArrayOutputStream();
-            message.writeTo(output);
-            return Unpooled.buffer(output.size() + SmtpClientConstants.PADDING_LEN)
-                    .writeBytes(output.toByteArray())
-                    .writeBytes(SmtpClientConstants.CRLF.getBytes(StandardCharsets.US_ASCII))
-                    .writeByte(SmtpClientConstants.PERIOD)
-                    .writeBytes(SmtpClientConstants.CRLF.getBytes(StandardCharsets.US_ASCII));
-        } catch (final MessagingException | IOException e) {
+        final byte[] bytes = message.get();
+        if (bytes == null) {
             return null;
         }
+        return Unpooled.buffer(bytes.length + SmtpClientConstants.PADDING_LEN)
+            .writeBytes(bytes)
+            .writeBytes(SmtpClientConstants.CRLF.getBytes(StandardCharsets.US_ASCII))
+            .writeByte(SmtpClientConstants.PERIOD)
+            .writeBytes(SmtpClientConstants.CRLF.getBytes(StandardCharsets.US_ASCII));
     }
 
     /**
      * @return the {@link SMTPMessage} object
      */
-    public SMTPMessage getMessage() {
-        return message;
+    public byte[] getMessage() {
+        return message.get();
     }
 
     @Override
