@@ -11,6 +11,7 @@ import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import javax.mail.MessagingException;
 import javax.mail.Session;
@@ -24,6 +25,10 @@ import org.testng.annotations.Test;
 import com.sun.mail.smtp.SMTPMessage;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
 import com.yahoo.smtpnio.async.response.SmtpResponse;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelPromise;
 
 /**
  * Unit test for {@link DataCommand}.
@@ -57,7 +62,7 @@ public class DataCommandTest {
      * @throws MessagingException will not throw in this test
      */
     @Test
-    public void testGetCommandLineEmpty() throws SmtpAsyncClientException, IllegalAccessException, MessagingException, IOException {
+    public void testGetCommandLineEmpty() throws SmtpAsyncClientException, IllegalAccessException, MessagingException {
         SMTPMessage msg = new SMTPMessage((Session) null);
         msg.setText("");
         final SmtpRequest cmd = DataCommand.fromSmtpMessage(msg);
@@ -74,12 +79,50 @@ public class DataCommandTest {
     }
 
     /**
+     * Tests the correctness of encodeCommandAfterContinuation.
+     *
+     * @throws SmtpAsyncClientException will not throw in this test
+     * @throws IllegalAccessException will not throw in this test
+     * @throws MessagingException will not throw in this test
+     */
+    @Test
+    public void testEncodeCommandAfterContinuation() throws SmtpAsyncClientException, IllegalAccessException, MessagingException {
+        SMTPMessage msg = new SMTPMessage((Session) null);
+        msg.setText("");
+
+        msg.setHeader("Cc", "Eric");
+        msg.setHeader("Bcc", "Alice");
+        msg.setHeader("From", "a good friend");
+        msg.setHeader("To", "my best friend");
+        msg.setSubject("long time no see!", "UTF-8");
+
+        final SmtpRequest cmd = DataCommand.fromSmtpMessage(msg);
+
+        final Channel channel = Mockito.mock(Channel.class);
+        final ChannelPromise channelPromise = Mockito.mock(ChannelPromise.class);
+        cmd.encodeCommandAfterContinuation(channel, new Supplier<ChannelPromise>() {
+            @Override
+            public ChannelPromise get() {
+                return channelPromise;
+            }
+        }, Mockito.mock(SmtpResponse.class));
+
+        Mockito.verify(channel, Mockito.times(1)).writeAndFlush(Mockito.any(ByteBuf.class), Mockito.eq(channelPromise));
+
+        cmd.cleanup();
+        // Verify if cleanup happened correctly.
+        for (final Field field : fieldsToCheck) {
+            Assert.assertNull(field.get(cmd), "Cleanup should set " + field.getName() + " as null");
+        }
+    }
+
+    /**
      * Tests the correctness of the constructor.
      *
      * @throws IllegalAccessException will not throw in this test
      */
     @Test
-    public void testConstructor() throws IllegalAccessException, IOException, MessagingException {
+    public void testConstructor() throws IllegalAccessException {
         final byte[] payload = "data".getBytes();
         final DataCommand cmd = new DataCommand(() -> payload);
         Assert.assertSame(cmd.getMessage(), payload, "Wrong message");
@@ -99,7 +142,7 @@ public class DataCommandTest {
      * @throws MessagingException will not throw in this test
      */
     @Test
-    public void testSetHeaders() throws SmtpAsyncClientException, IllegalAccessException, MessagingException, IOException {
+    public void testSetHeaders() throws SmtpAsyncClientException, IllegalAccessException, MessagingException {
         SMTPMessage msg = new SMTPMessage((Session) null);
         msg.setText("");
 
@@ -137,7 +180,7 @@ public class DataCommandTest {
      * @throws MessagingException will not throw in this test
      */
     @Test
-    public void testSetBody() throws SmtpAsyncClientException, IllegalAccessException, MessagingException, IOException {
+    public void testSetBody() throws SmtpAsyncClientException, IllegalAccessException, MessagingException {
         SMTPMessage msg = new SMTPMessage((Session) null);
         msg.setText("Hi Bart,\n\nThis is a reminder that you have outstanding payments due soon.");
         final SmtpRequest cmd = DataCommand.fromSmtpMessage(msg);
@@ -208,7 +251,7 @@ public class DataCommandTest {
      * Tests the {@code getCommandType} method.
      */
     @Test
-    public void testGetCommandType() throws IOException, MessagingException {
+    public void testGetCommandType() {
         Assert.assertSame(DataCommand.fromSmtpMessage(new SMTPMessage((Session) null)).getCommandType(), SmtpRFCSupportedCommandType.DATA);
     }
 
@@ -216,7 +259,7 @@ public class DataCommandTest {
      * Tests the {@code isCommandLineSensitive} method.
      */
     @Test
-    public void testIsCommandSensitive() throws IOException, MessagingException {
+    public void testIsCommandSensitive() {
         Assert.assertFalse(DataCommand.fromSmtpMessage(new SMTPMessage((Session) null)).isCommandLineDataSensitive());
     }
 
@@ -224,7 +267,7 @@ public class DataCommandTest {
      * Tests the {@code getDebugData} method.
      */
     @Test
-    public void testGetDebugData() throws IOException, MessagingException {
+    public void testGetDebugData() {
         Assert.assertEquals(DataCommand.fromSmtpMessage(new SMTPMessage((Session) null)).getDebugData(), "");
     }
 }

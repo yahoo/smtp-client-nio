@@ -14,12 +14,16 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 
 /**
  * This class initializes the pipeline with the correct handlers.
  */
 final class SmtpClientChannelInitializer extends ChannelInitializer<SocketChannel> {
+
+    /** Handler name for chunked write handler. */
+    private static final String CHUNKED_WRITER = "chunked-writer";
 
     /** Handler name for idle sate handler. */
     private static final String IDLE_STATE_HANDLER_NAME = "idleStateHandler";
@@ -60,6 +64,7 @@ final class SmtpClientChannelInitializer extends ChannelInitializer<SocketChanne
         pipeline.addLast(SMTP_LINE_DECODER_HANDLER_NAME, new SmtpClientRespReader(Integer.MAX_VALUE));
         pipeline.addLast(STRING_DECODER_HANDLER_NAME, new StringDecoder());
         pipeline.addLast(STRING_ENCODER_HANDLER_NAME, new StringEncoder());
+        pipeline.addLast(CHUNKED_WRITER, new ChunkedWriteHandler());
         pipeline.addLast(STRING_SMTP_MSG_RESPONSE_NAME, new SmtpClientRespDecoder());
     }
 }

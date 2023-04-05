@@ -41,6 +41,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.ssl.SslHandler;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.GenericFutureListener;
 
@@ -132,14 +133,15 @@ public class SmtpAsyncClientTest {
 
         // verify initChannel
         final ArgumentCaptor<ChannelHandler> handlerCaptor = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(socketPipeline, Mockito.times(5)).addLast(Mockito.anyString(), handlerCaptor.capture());
-        Assert.assertEquals(handlerCaptor.getAllValues().size(), 5, "Unexpected count of ChannelHandler added.");
+        Mockito.verify(socketPipeline, Mockito.times(6)).addLast(Mockito.anyString(), handlerCaptor.capture());
+        Assert.assertEquals(handlerCaptor.getAllValues().size(), 6, "Unexpected count of ChannelHandler added.");
         // following order should be preserved
         Assert.assertEquals(handlerCaptor.getAllValues().get(0).getClass(), IdleStateHandler.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(1).getClass(), SmtpClientRespReader.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(2).getClass(), StringDecoder.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(3).getClass(), StringEncoder.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), ChunkedWriteHandler.class, "expected class missmatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(5).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
 
         // verify GenericFutureListener.operationComplete()
         final GenericFutureListener listener = listenerCaptor.getAllValues().get(0);
@@ -155,9 +157,10 @@ public class SmtpAsyncClientTest {
         Assert.assertEquals(handlerCaptorAfter.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
 
         final ArgumentCaptor<ChannelHandler> handlerCaptorLast = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(nettyPipeline, Mockito.times(1)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
-        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 1, "Unexpected count of ChannelHandler added.");
-        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
+        Mockito.verify(nettyPipeline, Mockito.times(2)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
+        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 2, "Unexpected count of ChannelHandler added.");
+        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), ChunkedWriteHandler.class, "expected class mismatched.");
+        Assert.assertEquals(handlerCaptorLast.getAllValues().get(1).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
         // verify if session level is on, whether debug call will be called
         // verify logging messages
         Mockito.verify(logger, Mockito.times(1)).debug(
@@ -221,14 +224,15 @@ public class SmtpAsyncClientTest {
 
         // verify initChannel
         final ArgumentCaptor<ChannelHandler> handlerCaptor = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(socketPipeline, Mockito.times(5)).addLast(Mockito.anyString(), handlerCaptor.capture());
-        Assert.assertEquals(handlerCaptor.getAllValues().size(), 5, "Unexpected count of ChannelHandler added.");
+        Mockito.verify(socketPipeline, Mockito.times(6)).addLast(Mockito.anyString(), handlerCaptor.capture());
+        Assert.assertEquals(handlerCaptor.getAllValues().size(), 6, "Unexpected count of ChannelHandler added.");
         // following order should be preserved
         Assert.assertEquals(handlerCaptor.getAllValues().get(0).getClass(), IdleStateHandler.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(1).getClass(), SmtpClientRespReader.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(2).getClass(), StringDecoder.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(3).getClass(), StringEncoder.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), ChunkedWriteHandler.class, "expected class missmatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(5).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
 
         // verify GenericFutureListener.operationComplete()
         final GenericFutureListener listener = listenerCaptor.getAllValues().get(0);
@@ -303,14 +307,15 @@ public class SmtpAsyncClientTest {
 
         // verify initChannel
         final ArgumentCaptor<ChannelHandler> handlerCaptor = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(socketPipeline, Mockito.times(5)).addLast(Mockito.anyString(), handlerCaptor.capture());
-        Assert.assertEquals(handlerCaptor.getAllValues().size(), 5, "Unexpected count of ChannelHandler added.");
+        Mockito.verify(socketPipeline, Mockito.times(6)).addLast(Mockito.anyString(), handlerCaptor.capture());
+        Assert.assertEquals(handlerCaptor.getAllValues().size(), 6, "Unexpected count of ChannelHandler added.");
         // following order should be preserved
         Assert.assertEquals(handlerCaptor.getAllValues().get(0).getClass(), IdleStateHandler.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(1).getClass(), SmtpClientRespReader.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(2).getClass(), StringDecoder.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(3).getClass(), StringEncoder.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), ChunkedWriteHandler.class, "expected class missmatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(5).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
 
         // verify GenericFutureListener.operationComplete()
         final GenericFutureListener listener = listenerCaptor.getAllValues().get(0);
@@ -385,14 +390,15 @@ public class SmtpAsyncClientTest {
 
         // verify initChannel
         final ArgumentCaptor<ChannelHandler> handlerCaptor = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(socketPipeline, Mockito.times(5)).addLast(Mockito.anyString(), handlerCaptor.capture());
-        Assert.assertEquals(handlerCaptor.getAllValues().size(), 5, "Unexpected count of ChannelHandler added.");
+        Mockito.verify(socketPipeline, Mockito.times(6)).addLast(Mockito.anyString(), handlerCaptor.capture());
+        Assert.assertEquals(handlerCaptor.getAllValues().size(), 6, "Unexpected count of ChannelHandler added.");
         // following order should be preserved
         Assert.assertEquals(handlerCaptor.getAllValues().get(0).getClass(), IdleStateHandler.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(1).getClass(), SmtpClientRespReader.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(2).getClass(), StringDecoder.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(3).getClass(), StringEncoder.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), ChunkedWriteHandler.class, "expected class missmatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(5).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
 
         // verify GenericFutureListener.operationComplete()
         final GenericFutureListener listener = listenerCaptor.getAllValues().get(0);
@@ -469,14 +475,15 @@ public class SmtpAsyncClientTest {
 
         // verify initChannel
         final ArgumentCaptor<ChannelHandler> handlerCaptor = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(socketPipeline, Mockito.times(5)).addLast(Mockito.anyString(), handlerCaptor.capture());
-        Assert.assertEquals(handlerCaptor.getAllValues().size(), 5, "Unexpected count of ChannelHandler added.");
+        Mockito.verify(socketPipeline, Mockito.times(6)).addLast(Mockito.anyString(), handlerCaptor.capture());
+        Assert.assertEquals(handlerCaptor.getAllValues().size(), 6, "Unexpected count of ChannelHandler added.");
         // following order should be preserved
         Assert.assertEquals(handlerCaptor.getAllValues().get(0).getClass(), IdleStateHandler.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(1).getClass(), SmtpClientRespReader.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(2).getClass(), StringDecoder.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(3).getClass(), StringEncoder.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), ChunkedWriteHandler.class, "expected class missmatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(5).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
 
         // verify GenericFutureListener.operationComplete()
         final GenericFutureListener listener = listenerCaptor.getAllValues().get(0);
@@ -492,9 +499,10 @@ public class SmtpAsyncClientTest {
         Assert.assertEquals(handlerCaptorAfter.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
 
         final ArgumentCaptor<ChannelHandler> handlerCaptorLast = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(nettyPipeline, Mockito.times(1)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
-        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 1, "Unexpected count of ChannelHandler added.");
-        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
+        Mockito.verify(nettyPipeline, Mockito.times(2)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
+        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 2, "Unexpected count of ChannelHandler added.");
+        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), ChunkedWriteHandler.class, "expected class mismatched.");
+        Assert.assertEquals(handlerCaptorLast.getAllValues().get(1).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
         // verify if session level is on, whether debug call will be called
         // verify logging messages
         Mockito.verify(logger, Mockito.times(1)).debug(
@@ -558,14 +566,15 @@ public class SmtpAsyncClientTest {
 
         // verify initChannel
         final ArgumentCaptor<ChannelHandler> handlerCaptor = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(socketPipeline, Mockito.times(5)).addLast(Mockito.anyString(), handlerCaptor.capture());
-        Assert.assertEquals(handlerCaptor.getAllValues().size(), 5, "Unexpected count of ChannelHandler added.");
+        Mockito.verify(socketPipeline, Mockito.times(6)).addLast(Mockito.anyString(), handlerCaptor.capture());
+        Assert.assertEquals(handlerCaptor.getAllValues().size(), 6, "Unexpected count of ChannelHandler added.");
         // following order should be preserved
         Assert.assertEquals(handlerCaptor.getAllValues().get(0).getClass(), IdleStateHandler.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(1).getClass(), SmtpClientRespReader.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(2).getClass(), StringDecoder.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(3).getClass(), StringEncoder.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), ChunkedWriteHandler.class, "expected class missmatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(5).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
 
         // verify GenericFutureListener.operationComplete()
         final GenericFutureListener listener = listenerCaptor.getAllValues().get(0);
@@ -581,9 +590,10 @@ public class SmtpAsyncClientTest {
         Assert.assertEquals(handlerCaptorAfter.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
 
         final ArgumentCaptor<ChannelHandler> handlerCaptorLast = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(nettyPipeline, Mockito.times(1)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
-        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 1, "Unexpected count of ChannelHandler added.");
-        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
+        Mockito.verify(nettyPipeline, Mockito.times(2)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
+        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 2, "Unexpected count of ChannelHandler added.");
+        Assert.assertEquals(handlerCaptorLast.getAllValues().get(1).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
+        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), ChunkedWriteHandler.class, "expected class mismatched.");
 
         // verify to make sure logger isn't called
         Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.anyLong(), Mockito.anyString(), Mockito.anyString(),
@@ -643,14 +653,15 @@ public class SmtpAsyncClientTest {
 
         // verify initChannel
         final ArgumentCaptor<ChannelHandler> handlerCaptor = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(socketPipeline, Mockito.times(5)).addLast(Mockito.anyString(), handlerCaptor.capture());
-        Assert.assertEquals(handlerCaptor.getAllValues().size(), 5, "Unexpected count of ChannelHandler added.");
+        Mockito.verify(socketPipeline, Mockito.times(6)).addLast(Mockito.anyString(), handlerCaptor.capture());
+        Assert.assertEquals(handlerCaptor.getAllValues().size(), 6, "Unexpected count of ChannelHandler added.");
         // following order should be preserved
         Assert.assertEquals(handlerCaptor.getAllValues().get(0).getClass(), IdleStateHandler.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(1).getClass(), SmtpClientRespReader.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(2).getClass(), StringDecoder.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(3).getClass(), StringEncoder.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), ChunkedWriteHandler.class, "expected class missmatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(5).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
 
         // verify GenericFutureListener.operationComplete()
         final GenericFutureListener listener = listenerCaptor.getAllValues().get(0);
@@ -721,14 +732,15 @@ public class SmtpAsyncClientTest {
 
         // verify initChannel
         final ArgumentCaptor<ChannelHandler> handlerCaptor = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(socketPipeline, Mockito.times(5)).addLast(Mockito.anyString(), handlerCaptor.capture());
-        Assert.assertEquals(handlerCaptor.getAllValues().size(), 5, "Unexpected count of ChannelHandler added.");
+        Mockito.verify(socketPipeline, Mockito.times(6)).addLast(Mockito.anyString(), handlerCaptor.capture());
+        Assert.assertEquals(handlerCaptor.getAllValues().size(), 6, "Unexpected count of ChannelHandler added.");
         // following order should be preserved
         Assert.assertEquals(handlerCaptor.getAllValues().get(0).getClass(), IdleStateHandler.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(1).getClass(), SmtpClientRespReader.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(2).getClass(), StringDecoder.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(3).getClass(), StringEncoder.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), ChunkedWriteHandler.class, "expected class missmatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(5).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
 
         // verify GenericFutureListener.operationComplete()
         final GenericFutureListener listener = listenerCaptor.getAllValues().get(0);
@@ -801,14 +813,15 @@ public class SmtpAsyncClientTest {
 
         // verify initChannel
         final ArgumentCaptor<ChannelHandler> handlerCaptor = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(socketPipeline, Mockito.times(5)).addLast(Mockito.anyString(), handlerCaptor.capture());
-        Assert.assertEquals(handlerCaptor.getAllValues().size(), 5, "Unexpected count of ChannelHandler added.");
+        Mockito.verify(socketPipeline, Mockito.times(6)).addLast(Mockito.anyString(), handlerCaptor.capture());
+        Assert.assertEquals(handlerCaptor.getAllValues().size(), 6, "Unexpected count of ChannelHandler added.");
         // following order should be preserved
         Assert.assertEquals(handlerCaptor.getAllValues().get(0).getClass(), IdleStateHandler.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(1).getClass(), SmtpClientRespReader.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(2).getClass(), StringDecoder.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(3).getClass(), StringEncoder.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), ChunkedWriteHandler.class, "expected class missmatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(5).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
 
         // verify GenericFutureListener.operationComplete()
         final GenericFutureListener listener = listenerCaptor.getAllValues().get(0);
@@ -880,14 +893,15 @@ public class SmtpAsyncClientTest {
 
         // verify initChannel
         final ArgumentCaptor<ChannelHandler> handlerCaptor = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(socketPipeline, Mockito.times(5)).addLast(Mockito.anyString(), handlerCaptor.capture());
-        Assert.assertEquals(handlerCaptor.getAllValues().size(), 5, "Unexpected count of ChannelHandler added.");
+        Mockito.verify(socketPipeline, Mockito.times(6)).addLast(Mockito.anyString(), handlerCaptor.capture());
+        Assert.assertEquals(handlerCaptor.getAllValues().size(), 6, "Unexpected count of ChannelHandler added.");
         // following order should be preserved
         Assert.assertEquals(handlerCaptor.getAllValues().get(0).getClass(), IdleStateHandler.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(1).getClass(), SmtpClientRespReader.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(2).getClass(), StringDecoder.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(3).getClass(), StringEncoder.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), ChunkedWriteHandler.class, "expected class missmatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(5).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
 
         // verify GenericFutureListener.operationComplete()
         final GenericFutureListener listener = listenerCaptor.getAllValues().get(0);
@@ -969,14 +983,15 @@ public class SmtpAsyncClientTest {
 
         // verify initChannel
         final ArgumentCaptor<ChannelHandler> handlerCaptor = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(socketPipeline, Mockito.times(5)).addLast(Mockito.anyString(), handlerCaptor.capture());
-        Assert.assertEquals(handlerCaptor.getAllValues().size(), 5, "Unexpected count of ChannelHandler added.");
+        Mockito.verify(socketPipeline, Mockito.times(6)).addLast(Mockito.anyString(), handlerCaptor.capture());
+        Assert.assertEquals(handlerCaptor.getAllValues().size(), 6, "Unexpected count of ChannelHandler added.");
         // following order should be preserved
         Assert.assertEquals(handlerCaptor.getAllValues().get(0).getClass(), IdleStateHandler.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(1).getClass(), SmtpClientRespReader.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(2).getClass(), StringDecoder.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(3).getClass(), StringEncoder.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), ChunkedWriteHandler.class, "expected class missmatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(5).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
 
         // verify GenericFutureListener.operationComplete()
         final GenericFutureListener listener = listenerCaptor.getAllValues().get(0);
@@ -992,9 +1007,10 @@ public class SmtpAsyncClientTest {
         Assert.assertEquals(handlerCaptorAfter.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
 
         final ArgumentCaptor<ChannelHandler> handlerCaptorLast = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(nettyPipeline, Mockito.times(1)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
-        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 1, "Unexpected count of ChannelHandler added.");
-        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
+        Mockito.verify(nettyPipeline, Mockito.times(2)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
+        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 2, "Unexpected count of ChannelHandler added.");
+        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), ChunkedWriteHandler.class, "expected class mismatched.");
+        Assert.assertEquals(handlerCaptorLast.getAllValues().get(1).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
         // verify if session level is on, whether debug call will be called
         // verify logging messages
         Mockito.verify(logger, Mockito.times(1)).debug(
@@ -1153,14 +1169,15 @@ public class SmtpAsyncClientTest {
 
         // verify initChannel
         final ArgumentCaptor<ChannelHandler> handlerCaptor = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(socketPipeline, Mockito.times(5)).addLast(Mockito.anyString(), handlerCaptor.capture());
-        Assert.assertEquals(handlerCaptor.getAllValues().size(), 5, "Unexpected count of ChannelHandler added.");
+        Mockito.verify(socketPipeline, Mockito.times(6)).addLast(Mockito.anyString(), handlerCaptor.capture());
+        Assert.assertEquals(handlerCaptor.getAllValues().size(), 6, "Unexpected count of ChannelHandler added.");
         // following order should be preserved
         Assert.assertEquals(handlerCaptor.getAllValues().get(0).getClass(), IdleStateHandler.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(1).getClass(), SmtpClientRespReader.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(2).getClass(), StringDecoder.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(3).getClass(), StringEncoder.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), ChunkedWriteHandler.class, "expected class missmatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(5).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
 
         // verify GenericFutureListener.operationComplete()
         final GenericFutureListener listener = listenerCaptor.getAllValues().get(0);
@@ -1176,9 +1193,10 @@ public class SmtpAsyncClientTest {
         Assert.assertEquals(handlerCaptorAfter.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
 
         final ArgumentCaptor<ChannelHandler> handlerCaptorLast = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(nettyPipeline, Mockito.times(1)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
-        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 1, "Unexpected count of ChannelHandler added.");
-        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
+        Mockito.verify(nettyPipeline, Mockito.times(2)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
+        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 2, "Unexpected count of ChannelHandler added.");
+        Assert.assertEquals(handlerCaptorLast.getAllValues().get(1).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
+        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), ChunkedWriteHandler.class, "expected class mismatched.");
 
         // verify logging messages
         Mockito.verify(logger, Mockito.times(1)).debug(
@@ -1247,14 +1265,15 @@ public class SmtpAsyncClientTest {
 
         // verify initChannel
         final ArgumentCaptor<ChannelHandler> handlerCaptor = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(socketPipeline, Mockito.times(5)).addLast(Mockito.anyString(), handlerCaptor.capture());
-        Assert.assertEquals(handlerCaptor.getAllValues().size(), 5, "Unexpected count of ChannelHandler added.");
+        Mockito.verify(socketPipeline, Mockito.times(6)).addLast(Mockito.anyString(), handlerCaptor.capture());
+        Assert.assertEquals(handlerCaptor.getAllValues().size(), 6, "Unexpected count of ChannelHandler added.");
         // following order should be preserved
         Assert.assertEquals(handlerCaptor.getAllValues().get(0).getClass(), IdleStateHandler.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(1).getClass(), SmtpClientRespReader.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(2).getClass(), StringDecoder.class, "expected class mismatched.");
         Assert.assertEquals(handlerCaptor.getAllValues().get(3).getClass(), StringEncoder.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(4).getClass(), ChunkedWriteHandler.class, "expected class missmatched.");
+        Assert.assertEquals(handlerCaptor.getAllValues().get(5).getClass(), SmtpClientRespDecoder.class, "expected class mismatched.");
 
         // verify GenericFutureListener.operationComplete()
         final GenericFutureListener listener = listenerCaptor.getAllValues().get(0);
@@ -1271,9 +1290,10 @@ public class SmtpAsyncClientTest {
 
 
         final ArgumentCaptor<ChannelHandler> handlerCaptorLast = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(nettyPipeline, Mockito.times(1)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
-        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 1, "Unexpected count of ChannelHandler added.");
-        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
+        Mockito.verify(nettyPipeline, Mockito.times(2)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
+        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 2, "Unexpected count of ChannelHandler added.");
+        Assert.assertEquals(handlerCaptorLast.getAllValues().get(1).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
+        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), ChunkedWriteHandler.class, "expected class mismatched.");
 
         // verify logging messages
         Mockito.verify(logger, Mockito.times(1)).debug(Mockito.eq(

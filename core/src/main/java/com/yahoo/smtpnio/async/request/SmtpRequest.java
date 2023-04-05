@@ -4,6 +4,8 @@
  */
 package com.yahoo.smtpnio.async.request;
 
+import java.util.function.Supplier;
+
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -11,6 +13,8 @@ import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
 import com.yahoo.smtpnio.async.response.SmtpResponse;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelPromise;
 
 /**
  * This interface defines a SMTP command sent from the client.
@@ -52,6 +56,20 @@ public interface SmtpRequest {
      */
     @Nullable
     ByteBuf getNextCommandLineAfterContinuation(SmtpResponse serverResponse) throws SmtpAsyncClientException;
+
+    /**
+     * Encodes the command line over wire.
+     *
+     * @param channel the channel connected to the server
+     * @param writeFuture the supplier to propagate write errors
+     * @param serverResponse response received from the server
+     *
+     * @throws SmtpAsyncClientException when encountering an error encoding the input
+     */
+    default void encodeCommandAfterContinuation(final Channel channel, final Supplier<ChannelPromise> writeFuture,
+                                                final SmtpResponse serverResponse) throws SmtpAsyncClientException {
+        channel.writeAndFlush(this.getNextCommandLineAfterContinuation(serverResponse), writeFuture.get());
+    }
 
     /**
      * Avoids loitering.
