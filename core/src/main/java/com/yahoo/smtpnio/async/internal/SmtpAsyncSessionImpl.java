@@ -267,9 +267,6 @@ public class SmtpAsyncSessionImpl implements SmtpAsyncSession, SmtpCommandChanne
             logger.debug(CLIENT_LOG_REC, sessionId, getUserInfo(),
                     (!command.isCommandLineDataSensitive()) ? request.toString(StandardCharsets.UTF_8) : command.getDebugData());
         }
-        if (isChannelClosed()) {
-            throw new SmtpAsyncClientException(FailureType.OPERATION_PROHIBITED_ON_CLOSED_CHANNEL, sessionId, sessionCtx);
-        }
 
         // ChannelPromise is the suggested ChannelFuture that allows caller to setup listener before the action is made
         // this is useful for light-speed operation.

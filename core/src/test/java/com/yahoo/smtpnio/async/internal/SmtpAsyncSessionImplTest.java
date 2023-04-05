@@ -341,6 +341,37 @@ public class SmtpAsyncSessionImplTest {
     }
 
     /**
+     * Tests that executing a request against a closed channel throws.
+     *
+     */
+    @Test
+    public void testClosedChannel() {
+        final Channel channel = Mockito.mock(Channel.class);
+        final ChannelPipeline pipeline = Mockito.mock(ChannelPipeline.class);
+        Mockito.when(channel.pipeline()).thenReturn(pipeline);
+        Mockito.when(channel.isActive()).thenReturn(false);
+        final ChannelPromise writePromise = Mockito.mock(ChannelPromise.class);
+        Mockito.when(channel.newPromise()).thenReturn(writePromise);
+
+        final Logger logger = Mockito.mock(Logger.class);
+        Mockito.when(logger.isDebugEnabled()).thenReturn(true);
+
+        // construct, turn on session level debugging by having logger.isDebugEnabled() true and session level debug on
+
+        final SmtpAsyncSessionImpl aSession = new SmtpAsyncSessionImpl(channel, logger, DebugMode.DEBUG_ON, SESSION_ID, pipeline, USER_ID);
+
+        // execute
+        final SmtpRequest cmd = new QuitCommand();
+
+        Assert.assertThrows(new Assert.ThrowingRunnable() {
+            @Override
+            public void run() throws Throwable {
+                aSession.execute(cmd);
+            }
+        });
+    }
+
+    /**
      * Tests server idles event happens while command queue is empty.
      */
     @Test
