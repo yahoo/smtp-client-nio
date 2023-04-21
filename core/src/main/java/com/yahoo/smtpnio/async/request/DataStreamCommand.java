@@ -79,7 +79,7 @@ public class DataStreamCommand extends AbstractSmtpCommand {
     }
 
     /**
-     * Trasnsforms an inputStream into a byte array.
+     * Transforms an inputStream into a byte array.
      *
      * Copied from https://commons.apache.org/proper/commons-io/apidocs/org/apache/commons/io/IOUtils.html#toByteArray-java.io.InputStream-
      *
@@ -90,23 +90,15 @@ public class DataStreamCommand extends AbstractSmtpCommand {
     private byte[] toByteArray(final InputStream inputStream) throws IOException {
         // We use a ThresholdingOutputStream to avoid reading AND writing more than Integer.MAX_VALUE.
         try (final ByteArrayOutputStream ubaOutput = new ByteArrayOutputStream()) {
-            copy(inputStream, ubaOutput);
+            byte[] buffer = new byte[1024];
+            long count = 0;
+            int n;
+            while (-1 != (n = inputStream.read(buffer))) {
+                ubaOutput.write(buffer, 0, n);
+                count += n;
+            }
             return ubaOutput.toByteArray();
         }
-    }
-
-    private int copy(final InputStream inputStream, final OutputStream outputStream) throws IOException {
-        return (int) copyLarge(inputStream, outputStream, new byte[1024]);
-    }
-
-    private long copyLarge(final InputStream inputStream, final OutputStream outputStream, final byte[] buffer) throws IOException {
-        long count = 0;
-        int n;
-        while (-1 != (n = inputStream.read(buffer))) {
-            outputStream.write(buffer, 0, n);
-            count += n;
-        }
-        return count;
     }
 
     @Override
