@@ -4,10 +4,11 @@
  */
 package com.yahoo.smtpnio.async.request;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.SequenceInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Supplier;
 
@@ -96,8 +97,7 @@ public class DataStreamCommand extends AbstractSmtpCommand {
 
     @Override
     public void encodeCommandAfterContinuation(final Channel channel, final Supplier<ChannelPromise> writeFuture, final SmtpResponse response) {
-        channel.write(new ChunkedStream(message), writeFuture.get());
-        channel.writeAndFlush(Unpooled.wrappedBuffer(END_OF_INPUT));
+        channel.write(new ChunkedStream(new SequenceInputStream(message, new ByteArrayInputStream(END_OF_INPUT))), writeFuture.get());
     }
 
     @Override

@@ -28,7 +28,6 @@ import com.sun.mail.smtp.SMTPMessage;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
 import com.yahoo.smtpnio.async.response.SmtpResponse;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.stream.ChunkedStream;
@@ -169,7 +168,6 @@ public class DataStreamCommandTest {
         }, Mockito.mock(SmtpResponse.class));
 
         Mockito.verify(channel, Mockito.times(1)).write(Mockito.any(ChunkedStream.class), Mockito.eq(channelPromise));
-        Mockito.verify(channel, Mockito.times(1)).writeAndFlush(Mockito.any(ByteBuf.class));
 
         cmd.cleanup();
         // Verify if cleanup happened correctly.
