@@ -6,7 +6,6 @@ package com.yahoo.smtpnio.async.request;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
@@ -68,9 +67,9 @@ public class DataCommand extends AbstractSmtpCommand {
         }
         return Unpooled.buffer(bytes.length + SmtpClientConstants.PADDING_LEN)
             .writeBytes(bytes)
-            .writeBytes(SmtpClientConstants.CRLF.getBytes(StandardCharsets.US_ASCII))
+            .writeBytes(AbstractSmtpCommand.CRLF_B)
             .writeByte(SmtpClientConstants.PERIOD)
-            .writeBytes(SmtpClientConstants.CRLF.getBytes(StandardCharsets.US_ASCII));
+            .writeBytes(AbstractSmtpCommand.CRLF_B);
     }
 
     /**

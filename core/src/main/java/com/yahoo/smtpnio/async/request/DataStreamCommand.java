@@ -64,9 +64,9 @@ public class DataStreamCommand extends AbstractSmtpCommand {
             final byte[] bytes = toByteArray(message);
             return Unpooled.buffer(bytes.length + SmtpClientConstants.PADDING_LEN)
                 .writeBytes(bytes)
-                .writeBytes(SmtpClientConstants.CRLF.getBytes(StandardCharsets.US_ASCII))
+                .writeBytes(AbstractSmtpCommand.CRLF_B)
                 .writeByte(SmtpClientConstants.PERIOD)
-                .writeBytes(SmtpClientConstants.CRLF.getBytes(StandardCharsets.US_ASCII));
+                .writeBytes(AbstractSmtpCommand.CRLF_B);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
