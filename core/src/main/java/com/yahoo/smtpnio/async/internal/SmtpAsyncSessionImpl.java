@@ -411,7 +411,6 @@ public class SmtpAsyncSessionImpl implements SmtpAsyncSession, SmtpCommandChanne
         // server sends continuation message for next request. Eg. DATA command
         if (serverResponse.isContinuation()) {
             try {
-                curEntry.setState(SmtpCommandEntry.CommandState.RESPONSES_DONE);
                 curEntry.setState(SmtpCommandEntry.CommandState.REQUEST_IN_PREPARATION); // preparing to send request so setting to correct state
                 sendContinuation(currentCmd, serverResponse);
             } catch (final SmtpAsyncClientException | RuntimeException e) { // when encountering an error on building request from client
