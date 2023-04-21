@@ -301,6 +301,12 @@ public class SmtpAsyncSessionImpl implements SmtpAsyncSession, SmtpCommandChanne
         command.encodeCommandAfterContinuation(channel, writeFuture(channel), serverResponse);
     }
 
+    /**
+     * Allows creating a channel promise provider, to be used upon writes.
+     *
+     * @param channel A channel.
+     * @return a way to obtain channel proses calling back this session, for the supplied channel.
+     */
     private Supplier<ChannelPromise> writeFuture(final Channel channel) {
         SmtpAsyncSessionImpl session = this;
         return new Supplier<ChannelPromise>() {

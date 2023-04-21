@@ -54,6 +54,12 @@ public class DataStreamCommand extends AbstractSmtpCommand {
         return "DATA stream";
     }
 
+    /**
+     * @return the message held in this command.
+     *
+     * For testing purposes only. InputStream is stateful, thus consuming this message will alter the state of
+     * this command.
+     */
     InputStream getMessage() {
         return message;
     }
@@ -72,7 +78,15 @@ public class DataStreamCommand extends AbstractSmtpCommand {
         }
     }
 
-
+    /**
+     * Trasnsforms an inputStream into a byte array.
+     *
+     * Copied from https://commons.apache.org/proper/commons-io/apidocs/org/apache/commons/io/IOUtils.html#toByteArray-java.io.InputStream-
+     *
+     * @param inputStream the InputStream to read.
+     * @return the requested byte array.
+     * @throws IOException - if an I/O error occurs.
+     */
     private byte[] toByteArray(final InputStream inputStream) throws IOException {
         // We use a ThresholdingOutputStream to avoid reading AND writing more than Integer.MAX_VALUE.
         try (final ByteArrayOutputStream ubaOutput = new ByteArrayOutputStream()) {
