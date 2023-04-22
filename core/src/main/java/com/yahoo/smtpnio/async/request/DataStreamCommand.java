@@ -28,7 +28,7 @@ import io.netty.handler.stream.ChunkedStream;
 public class DataStreamCommand extends AbstractSmtpCommand {
     /** String literal for "DATA". */
     private static final String DATA = "DATA";
-    private static final byte[] END_OF_INPUT = "\r\n.\r\n".getBytes(StandardCharsets.US_ASCII);
+    private static final byte[] END_OF_INPUT = {'\r', '\n', '.', '\r', '\n'};
 
     /** The message to be sent. */
     private InputStream message;
