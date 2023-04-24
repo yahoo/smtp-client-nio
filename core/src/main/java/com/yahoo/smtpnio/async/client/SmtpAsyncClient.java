@@ -43,12 +43,15 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.util.concurrent.GenericFutureListener;
 
 /**
  * Implementation for the SMTP NIO client.
  */
 public class SmtpAsyncClient {
+
+    private static final String CHUNKED_WRITER = "chunked-writer";
 
     /** Enum used to specify different session mode. */
     private enum SessionMode {
@@ -224,6 +227,7 @@ public class SmtpAsyncClient {
                     pipeline.addFirst(SSL_HANDLER, sslHandler);
                     pipeline.addAfter(SSL_HANDLER, SslDetectHandler.HANDLER_NAME, new SslDetectHandler(sessionCount.get(), sessionData, config,
                             debugOption, smtpAsyncClient, sessionCreatedFuture));
+                    pipeline.addLast(CHUNKED_WRITER, new ChunkedWriteHandler());
                     pipeline.addLast(SmtpClientConnectHandler.HANDLER_NAME, new SmtpClientConnectHandler(sessionCreatedFuture,
                             debugOption, sessionId, sessionCtx));
                     break;

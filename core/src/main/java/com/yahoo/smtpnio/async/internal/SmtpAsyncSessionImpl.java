@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -267,9 +268,6 @@ public class SmtpAsyncSessionImpl implements SmtpAsyncSession, SmtpCommandChanne
             logger.debug(CLIENT_LOG_REC, sessionId, getUserInfo(),
                     (!command.isCommandLineDataSensitive()) ? request.toString(StandardCharsets.UTF_8) : command.getDebugData());
         }
-        if (isChannelClosed()) {
-            throw new SmtpAsyncClientException(FailureType.OPERATION_PROHIBITED_ON_CLOSED_CHANNEL, sessionId, sessionCtx);
-        }
 
         // ChannelPromise is the suggested ChannelFuture that allows caller to setup listener before the action is made
         // this is useful for light-speed operation.
@@ -277,6 +275,49 @@ public class SmtpAsyncSessionImpl implements SmtpAsyncSession, SmtpCommandChanne
         final ChannelPromise writeFuture = channel.newPromise();
         writeFuture.addListener(this); // "this" listens to write future done in operationComplete() to handle exception in writing.
         channel.writeAndFlush(request, writeFuture);
+    }
+
+    /**
+     * Sends the given request to the server.
+     *
+     * @param command the SMTP request to be issued
+     * @throws SmtpAsyncClientException when channel is closed
+     */
+    private void sendContinuation(@Nonnull final SmtpRequest command, final SmtpResponse serverResponse) throws SmtpAsyncClientException {
+        if (isDebugEnabled()) {
+            // log given request if it not sensitive, otherwise log the debug data decided by command
+            logger.debug(CLIENT_LOG_REC, sessionId, getUserInfo(),
+                (!command.isCommandLineDataSensitive())
+                    ? command.getNextCommandLineAfterContinuation(serverResponse).toString(StandardCharsets.UTF_8)
+                    : command.getDebugData());
+        }
+        if (isChannelClosed()) {
+            throw new SmtpAsyncClientException(FailureType.OPERATION_PROHIBITED_ON_CLOSED_CHANNEL, sessionId, sessionCtx);
+        }
+
+        // ChannelPromise is the suggested ChannelFuture that allows caller to setup listener before the action is made
+        // this is useful for light-speed operation.
+        final Channel channel = channelRef.get();
+        command.encodeCommandAfterContinuation(channel, writeFuture(channel), serverResponse);
+    }
+
+    /**
+     * Allows creating a channel promise provider, to be used upon writes.
+     *
+     * @param channel A channel.
+     * @return a way to obtain channel proses calling back this session, for the supplied channel.
+     */
+    private Supplier<ChannelPromise> writeFuture(final Channel channel) {
+        SmtpAsyncSessionImpl session = this;
+        return new Supplier<ChannelPromise>() {
+            @Override
+            public ChannelPromise get() {
+                final ChannelPromise writeFuture = channel.newPromise();
+                // "this" listens to write future done in operationComplete() to handle exception in writing.
+                writeFuture.addListener(session);
+                return writeFuture;
+            }
+        };
     }
 
     /**
@@ -376,10 +417,8 @@ public class SmtpAsyncSessionImpl implements SmtpAsyncSession, SmtpCommandChanne
         // server sends continuation message for next request. Eg. DATA command
         if (serverResponse.isContinuation()) {
             try {
-                curEntry.setState(SmtpCommandEntry.CommandState.RESPONSES_DONE);
-                final ByteBuf cmdAfterContinue = currentCmd.getNextCommandLineAfterContinuation(serverResponse);
                 curEntry.setState(SmtpCommandEntry.CommandState.REQUEST_IN_PREPARATION); // preparing to send request so setting to correct state
-                sendRequest(cmdAfterContinue, currentCmd);
+                sendContinuation(currentCmd, serverResponse);
             } catch (final SmtpAsyncClientException | RuntimeException e) { // when encountering an error on building request from client
                 requestDoneWithException(new SmtpAsyncClientException(FailureType.CHANNEL_EXCEPTION, e, sessionId, sessionCtx));
             }

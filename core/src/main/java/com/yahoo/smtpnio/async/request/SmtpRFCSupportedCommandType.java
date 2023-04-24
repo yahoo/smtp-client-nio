@@ -21,6 +21,30 @@ enum SmtpRFCSupportedCommandType implements SmtpCommandType {
     /** The Authentication command (AUTH). */
     AUTH,
 
+    /** The Mail command (MAIL). */
+    MAIL,
+
+    /** The Recipient command (RCPT). */
+    RCPT,
+
+    /** The Data command (DATA). */
+    DATA,
+
+    /** The Reset command (RSET). */
+    RSET,
+
+    /** The Noop command (NOOP). */
+    NOOP,
+
+    /** The Verify command (VRFY). */
+    VRFY,
+
+    /** The Help command (HELP). */
+    HELP,
+
+    /** The Expand command (EXPN). */
+    EXPN,
+
     /** The Starttls command (Starttls). */
     STARTTLS;
 

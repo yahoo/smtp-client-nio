@@ -11,9 +11,12 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -84,6 +87,18 @@ public class SmtpAsyncSessionImplTest {
         {
             final SmtpRequest cmd = Mockito.mock(SmtpRequest.class);
             Mockito.when(cmd.getCommandLineBytes()).thenReturn(Unpooled.buffer().writeBytes("AUTH PLAIN\r\n".getBytes(StandardCharsets.US_ASCII)));
+            Mockito.doAnswer(new Answer() {
+                @Override
+                public Object answer(final InvocationOnMock invocationOnMock) throws Throwable {
+                    final Channel aChannel = invocationOnMock.getArgumentAt(0, Channel.class);
+                    final Supplier<ChannelPromise> promise = invocationOnMock.getArgumentAt(1, Supplier.class);
+                    final SmtpResponse response = invocationOnMock.getArgumentAt(2, SmtpResponse.class);
+
+                    aChannel.writeAndFlush(cmd.getNextCommandLineAfterContinuation(response), promise.get());
+
+                    return null;
+                }
+            }).when(cmd).encodeCommandAfterContinuation(Mockito.any(), Mockito.any(), Mockito.any());
 
             final SmtpFuture<SmtpAsyncResponse> future = aSession.execute(cmd);
             Mockito.verify(authWritePromise, Mockito.times(1)).addListener(Mockito.any(SmtpAsyncSessionImpl.class));
@@ -338,6 +353,37 @@ public class SmtpAsyncSessionImplTest {
 
         // verify that future should NOT be done since channel timeout exception did not happen
         Assert.assertFalse(future.isDone(), "isDone() should be true now");
+    }
+
+    /**
+     * Tests that executing a request against a closed channel throws.
+     *
+     */
+    @Test
+    public void testClosedChannel() {
+        final Channel channel = Mockito.mock(Channel.class);
+        final ChannelPipeline pipeline = Mockito.mock(ChannelPipeline.class);
+        Mockito.when(channel.pipeline()).thenReturn(pipeline);
+        Mockito.when(channel.isActive()).thenReturn(false);
+        final ChannelPromise writePromise = Mockito.mock(ChannelPromise.class);
+        Mockito.when(channel.newPromise()).thenReturn(writePromise);
+
+        final Logger logger = Mockito.mock(Logger.class);
+        Mockito.when(logger.isDebugEnabled()).thenReturn(true);
+
+        // construct, turn on session level debugging by having logger.isDebugEnabled() true and session level debug on
+
+        final SmtpAsyncSessionImpl aSession = new SmtpAsyncSessionImpl(channel, logger, DebugMode.DEBUG_ON, SESSION_ID, pipeline, USER_ID);
+
+        // execute
+        final SmtpRequest cmd = new QuitCommand();
+
+        Assert.assertThrows(new Assert.ThrowingRunnable() {
+            @Override
+            public void run() throws Throwable {
+                aSession.execute(cmd);
+            }
+        });
     }
 
     /**

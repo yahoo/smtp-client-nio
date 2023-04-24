@@ -25,6 +25,21 @@ final class SmtpClientConstants {
     /** Start of Header char (aka. CTRL-A or \001). **/
     static final char SOH = 0x1;
 
+    /** Period character. */
+    static final char PERIOD = '.';
+
+    /** Equal character. */
+    static final char EQUAL = '=';
+
+    /** Left angle bracket. */
+    static final char L_ANGLE_BRACKET = '<';
+
+    /** Right angle bracket. */
+    static final char R_ANGLE_BRACKET = '>';
+
+    /** Literal for colon. */
+    static final char COLON = ':';
+
     /** Private constructor to avoid constructing instance of this class. */
     private SmtpClientConstants() {
     }
