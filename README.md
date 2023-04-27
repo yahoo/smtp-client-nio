@@ -44,7 +44,7 @@ This library is built and managed using [maven](https://maven.apache.org/what-is
 <dependency>
   <groupId>com.yahoo.smtpnio</groupId>
   <artifactId>smtpnio.core</artifactId>
-  <version>1.1.0</version>
+  <version>1.1.1</version>
 </dependency>
 ```
 
