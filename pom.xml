@@ -5,7 +5,7 @@
     <groupId>com.yahoo.smtpnio</groupId>
     <artifactId>smtpnio</artifactId>
     <packaging>pom</packaging>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
     <name>${project.artifactId}</name>
     <url>https://github.com/yahoo/smtp-client-nio</url>
     <description>Parent POM file for smtpnio project</description>
@@ -112,16 +112,6 @@
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
                 <version>1.7.36</version>
-            </dependency>
-            <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-core</artifactId>
-                <version>1.2.11</version>
-            </dependency>
-            <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-classic</artifactId>
-                <version>1.2.11</version>
             </dependency>
             <dependency>
                 <groupId>commons-codec</groupId>
