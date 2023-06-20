@@ -5,7 +5,7 @@
     <groupId>com.yahoo.smtpnio</groupId>
     <artifactId>smtpnio</artifactId>
     <packaging>pom</packaging>
-    <version>1.1.1</version>
+    <version>1.1.2</version>
     <name>${project.artifactId}</name>
     <url>https://github.com/yahoo/smtp-client-nio</url>
     <description>Parent POM file for smtpnio project</description>
@@ -101,7 +101,7 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-handler</artifactId>
-                <version>4.1.92.Final</version>
+                <version>4.1.94.Final</version>
             </dependency>
             <dependency>
                 <groupId>com.sun.mail</groupId>
