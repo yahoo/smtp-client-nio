@@ -549,7 +549,8 @@
                 <gpg.executable>gpg</gpg.executable>
                 <gpg.keyname>${env.GPG_KEYNAME}</gpg.keyname>
                 <gpg.passphrase>${env.GPG_PASSPHRASE}</gpg.passphrase>
-                <gpg.homedir>${main.basedir}/ci/deploy</gpg.homedir>
+                <gpg.defaultKeyring>false</gpg.defaultKeyring>
+                <gpg.publickeyring>pubkeys.asc</gpg.publickeyring>
             </properties>
             <activation>
                 <property>
