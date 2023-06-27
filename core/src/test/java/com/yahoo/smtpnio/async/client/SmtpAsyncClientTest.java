@@ -157,10 +157,9 @@ public class SmtpAsyncClientTest {
         Assert.assertEquals(handlerCaptorAfter.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
 
         final ArgumentCaptor<ChannelHandler> handlerCaptorLast = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(nettyPipeline, Mockito.times(2)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
-        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 2, "Unexpected count of ChannelHandler added.");
-        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), ChunkedWriteHandler.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptorLast.getAllValues().get(1).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
+        Mockito.verify(nettyPipeline, Mockito.times(1)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
+        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 1, "Unexpected count of ChannelHandler added.");
+        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
         // verify if session level is on, whether debug call will be called
         // verify logging messages
         Mockito.verify(logger, Mockito.times(1)).debug(
@@ -499,10 +498,9 @@ public class SmtpAsyncClientTest {
         Assert.assertEquals(handlerCaptorAfter.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
 
         final ArgumentCaptor<ChannelHandler> handlerCaptorLast = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(nettyPipeline, Mockito.times(2)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
-        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 2, "Unexpected count of ChannelHandler added.");
-        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), ChunkedWriteHandler.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptorLast.getAllValues().get(1).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
+        Mockito.verify(nettyPipeline, Mockito.times(1)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
+        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 1, "Unexpected count of ChannelHandler added.");
+        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
         // verify if session level is on, whether debug call will be called
         // verify logging messages
         Mockito.verify(logger, Mockito.times(1)).debug(
@@ -590,10 +588,9 @@ public class SmtpAsyncClientTest {
         Assert.assertEquals(handlerCaptorAfter.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
 
         final ArgumentCaptor<ChannelHandler> handlerCaptorLast = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(nettyPipeline, Mockito.times(2)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
-        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 2, "Unexpected count of ChannelHandler added.");
-        Assert.assertEquals(handlerCaptorLast.getAllValues().get(1).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), ChunkedWriteHandler.class, "expected class mismatched.");
+        Mockito.verify(nettyPipeline, Mockito.times(1)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
+        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 1, "Unexpected count of ChannelHandler added.");
+        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
 
         // verify to make sure logger isn't called
         Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.anyLong(), Mockito.anyString(), Mockito.anyString(),
@@ -1007,10 +1004,9 @@ public class SmtpAsyncClientTest {
         Assert.assertEquals(handlerCaptorAfter.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
 
         final ArgumentCaptor<ChannelHandler> handlerCaptorLast = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(nettyPipeline, Mockito.times(2)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
-        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 2, "Unexpected count of ChannelHandler added.");
-        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), ChunkedWriteHandler.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptorLast.getAllValues().get(1).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
+        Mockito.verify(nettyPipeline, Mockito.times(1)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
+        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 1, "Unexpected count of ChannelHandler added.");
+        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
         // verify if session level is on, whether debug call will be called
         // verify logging messages
         Mockito.verify(logger, Mockito.times(1)).debug(
@@ -1193,10 +1189,9 @@ public class SmtpAsyncClientTest {
         Assert.assertEquals(handlerCaptorAfter.getAllValues().get(0).getClass(), SslDetectHandler.class, "expected class mismatched.");
 
         final ArgumentCaptor<ChannelHandler> handlerCaptorLast = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(nettyPipeline, Mockito.times(2)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
-        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 2, "Unexpected count of ChannelHandler added.");
-        Assert.assertEquals(handlerCaptorLast.getAllValues().get(1).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), ChunkedWriteHandler.class, "expected class mismatched.");
+        Mockito.verify(nettyPipeline, Mockito.times(1)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
+        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 1, "Unexpected count of ChannelHandler added.");
+        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
 
         // verify logging messages
         Mockito.verify(logger, Mockito.times(1)).debug(
@@ -1290,10 +1285,9 @@ public class SmtpAsyncClientTest {
 
 
         final ArgumentCaptor<ChannelHandler> handlerCaptorLast = ArgumentCaptor.forClass(ChannelHandler.class);
-        Mockito.verify(nettyPipeline, Mockito.times(2)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
-        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 2, "Unexpected count of ChannelHandler added.");
-        Assert.assertEquals(handlerCaptorLast.getAllValues().get(1).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
-        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), ChunkedWriteHandler.class, "expected class mismatched.");
+        Mockito.verify(nettyPipeline, Mockito.times(1)).addLast(Mockito.anyString(), handlerCaptorLast.capture());
+        Assert.assertEquals(handlerCaptorLast.getAllValues().size(), 1, "Unexpected count of ChannelHandler added.");
+        Assert.assertEquals(handlerCaptorLast.getAllValues().get(0).getClass(), SmtpClientConnectHandler.class, "expected class mismatched.");
 
         // verify logging messages
         Mockito.verify(logger, Mockito.times(1)).debug(Mockito.eq(
