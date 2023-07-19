@@ -105,6 +105,7 @@ public class SmtpClientConnectHandlerTest {
     public void testDecodeConnectFailed() throws IllegalArgumentException, InterruptedException, TimeoutException, SmtpAsyncClientException {
         final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<>();
         final Logger logger = Mockito.mock(Logger.class);
+        Mockito.when(logger.isErrorEnabled()).thenReturn(true).thenReturn(false);
 
         final String sessCtx = "Titanosauria@long.neck";
         final SmtpClientConnectHandler handler = new SmtpClientConnectHandler(smtpFuture, logger, DebugMode.DEBUG_ON, SESSION_ID, sessCtx);
@@ -137,6 +138,11 @@ public class SmtpClientConnectHandlerTest {
         Assert.assertEquals(ex.getCause().getClass(), SmtpAsyncClientException.class, "Expected result mismatched.");
         Mockito.verify(ctx, Mockito.times(1)).close();
         Mockito.verify(channel, Mockito.times(1)).isActive();
+
+        // decode again to verify logger when isErrorEnabled() is false
+        final SmtpClientConnectHandler handler2 = new SmtpClientConnectHandler(smtpFuture, logger, DebugMode.DEBUG_ON, SESSION_ID, sessCtx);
+        handler2.decode(ctx, resp, out);
+        Mockito.verify(logger, Mockito.times(1)).error(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
     }
 
     /**

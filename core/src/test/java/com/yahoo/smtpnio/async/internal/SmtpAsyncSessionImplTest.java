@@ -433,6 +433,7 @@ public class SmtpAsyncSessionImplTest {
         final Logger logger = Mockito.mock(Logger.class);
         Mockito.when(logger.isDebugEnabled()).thenReturn(true);
         Mockito.when(logger.isTraceEnabled()).thenReturn(true);
+        Mockito.when(logger.isErrorEnabled()).thenReturn(true).thenReturn(false);
 
         // construct
 
@@ -528,6 +529,18 @@ public class SmtpAsyncSessionImplTest {
 
         // calling setDebugMode() on a closed session, should not throw NPE
         aSession.setDebugMode(DebugMode.DEBUG_ON);
+
+        // Execute again to verify logger when isErrorEnabled() is false.
+        final Channel channel2 = Mockito.mock(Channel.class);
+        final ChannelPipeline pipeline2 = Mockito.mock(ChannelPipeline.class);
+        Mockito.when(channel2.pipeline()).thenReturn(pipeline2);
+        Mockito.when(channel2.isActive()).thenReturn(true);
+        Mockito.when(channel2.newPromise()).thenReturn(writeToServerPromise).thenReturn(closePromise);
+        final SmtpAsyncSessionImpl aSession2 = new SmtpAsyncSessionImpl(channel2, logger, DebugMode.DEBUG_ON, SESSION_ID, pipeline2, USER_ID);
+        aSession2.execute(cmd);
+        // verify logging messages
+        Mockito.verify(logger, Mockito.times(1)).error(Mockito.anyString(), Mockito.anyObject(),
+                Mockito.anyObject(), Mockito.anyObject());
     }
 
     /**
@@ -552,6 +565,7 @@ public class SmtpAsyncSessionImplTest {
 
         final Logger logger = Mockito.mock(Logger.class);
         Mockito.when(logger.isDebugEnabled()).thenReturn(true);
+        Mockito.when(logger.isErrorEnabled()).thenReturn(true).thenReturn(false);
 
         // construct, both class level and session level debugging are off
         final SmtpAsyncSessionImpl aSession = new SmtpAsyncSessionImpl(channel, logger, DebugMode.DEBUG_OFF, SESSION_ID, pipeline, USER_ID);
@@ -626,6 +640,19 @@ public class SmtpAsyncSessionImplTest {
 
             // no more responses in the queue, calling handleResponse should return right away without any indexOutOfBound
             aSession.handleChannelResponse(serverResp1);
+
+            // Execute again to verify logger when isErrorEnabled() is false.
+            final Channel channel2 = Mockito.mock(Channel.class);
+            final ChannelPipeline pipeline2 = Mockito.mock(ChannelPipeline.class);
+            Mockito.when(channel2.pipeline()).thenReturn(pipeline2);
+            Mockito.when(channel2.isActive()).thenReturn(true);
+            Mockito.when(channel2.newPromise()).thenReturn(authWritePromise).thenReturn(authWritePromise2).thenReturn(authWritePromise3)
+                    .thenReturn(closePromise);
+            final SmtpAsyncSessionImpl aSession2 = new SmtpAsyncSessionImpl(channel2, logger, DebugMode.DEBUG_OFF, SESSION_ID, pipeline2, USER_ID);
+            aSession2.execute(cmd);
+            // verify logging messages
+            Mockito.verify(logger, Mockito.times(1)).error(Mockito.anyString(), Mockito.anyObject(),
+                    Mockito.anyObject(), Mockito.anyObject());
         }
     }
 
@@ -651,6 +678,7 @@ public class SmtpAsyncSessionImplTest {
         final Logger logger = Mockito.mock(Logger.class);
         Mockito.when(logger.isDebugEnabled()).thenReturn(false);
         Mockito.when(logger.isTraceEnabled()).thenReturn(true);
+        Mockito.when(logger.isErrorEnabled()).thenReturn(true).thenReturn(false);
 
         // construct, class level logging is off, session level logging is on
 
@@ -709,6 +737,12 @@ public class SmtpAsyncSessionImplTest {
         final SmtpAsyncClientException e = (SmtpAsyncClientException) errCapture.getAllValues().get(2);
         Assert.assertNotNull(e, "Log error for exception is missing");
         Assert.assertEquals(e.getFailureType(), FailureType.CHANNEL_DISCONNECTED, "Class mismatched.");
+
+        // Execute again to verify logger when isErrorEnabled() is false.
+        aSession.execute(cmd);
+        // verify logging messages
+        Mockito.verify(logger, Mockito.times(1)).error(Mockito.anyString(), Mockito.anyObject(),
+                Mockito.anyObject(), Mockito.anyObject());
     }
 
     /**
@@ -734,6 +768,7 @@ public class SmtpAsyncSessionImplTest {
         final Logger logger = Mockito.mock(Logger.class);
         Mockito.when(logger.isInfoEnabled()).thenReturn(true);
         Mockito.when(logger.isDebugEnabled()).thenReturn(false);
+        Mockito.when(logger.isErrorEnabled()).thenReturn(true).thenReturn(false);
 
         // construct, class level logging is off, session level logging is on
 
@@ -782,6 +817,12 @@ public class SmtpAsyncSessionImplTest {
         final SmtpAsyncClientException e = (SmtpAsyncClientException) errCapture.getAllValues().get(2);
         Assert.assertNotNull(e, "Log error for exception is missing");
         Assert.assertEquals(e.getFailureType(), FailureType.CHANNEL_DISCONNECTED, "Class mismatched.");
+
+        // Execute again to verify logger when isErrorEnabled() is false.
+        aSession.execute(cmd);
+        // verify logging messages
+        Mockito.verify(logger, Mockito.times(1))
+                .error(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
     }
 
     /**
@@ -944,6 +985,7 @@ public class SmtpAsyncSessionImplTest {
 
         final Logger logger = Mockito.mock(Logger.class);
         Mockito.when(logger.isTraceEnabled()).thenReturn(true);
+        Mockito.when(logger.isErrorEnabled()).thenReturn(true).thenReturn(false);
 
         final SmtpAsyncSessionImpl aSession = new SmtpAsyncSessionImpl(channel, logger, DebugMode.DEBUG_ON, SESSION_ID, pipeline, null);
 
@@ -1001,5 +1043,11 @@ public class SmtpAsyncSessionImplTest {
         final SmtpAsyncClientException e = (SmtpAsyncClientException) errCapture.getAllValues().get(2);
         Assert.assertNotNull(e, "Log error for exception is missing");
         Assert.assertEquals(e.getFailureType(), FailureType.CHANNEL_DISCONNECTED, "Class mismatched.");
+
+        // Execute again to verify logger when isErrorEnabled() is false.
+        aSession.execute(cmd);
+        // verify logging messages
+        Mockito.verify(logger, Mockito.times(1)).error(Mockito.anyString(), Mockito.anyObject(),
+                Mockito.anyObject(), Mockito.anyObject());
     }
 }

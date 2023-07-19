@@ -621,6 +621,7 @@ public class SmtpAsyncClientTest {
         Mockito.when(bootstrap.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(nettyConnectFuture);
         Mockito.when(nettyChannel.isActive()).thenReturn(true);
         Mockito.when(logger.isTraceEnabled()).thenReturn(true);
+        Mockito.when(logger.isErrorEnabled()).thenReturn(true).thenReturn(false);
 
         final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
         final Future<SmtpAsyncCreateSessionResponse> future = client.createSession(
@@ -678,6 +679,16 @@ public class SmtpAsyncClientTest {
                 Mockito.eq(true), Mockito.eq(null), Mockito.eq("N/A"), Mockito.isA(SmtpAsyncClientException.class));
         Mockito.verify(nettyChannel, Mockito.times(1)).isActive();
         Mockito.verify(nettyChannel, Mockito.times(1)).close();
+
+        // Create session again to verify logger when isErrorEnabled() is false.
+        client.createSession(
+                SmtpAsyncSessionData.newBuilder("smtp.test.example.com", 123, true).setSessionContext("myCtxFail").build(),
+                new SmtpAsyncSessionConfig(), SmtpAsyncSession.DebugMode.DEBUG_OFF);
+        // verify logging messages
+        Mockito.verify(logger, Mockito.times(1)).error(
+                Mockito.eq("[{},{}] connect operation complete. result={}, host={}, port={}, sslEnabled={}, sniNames={}, sessionMode={}"),
+                Mockito.eq("N/A"), Mockito.eq("myCtxFail"), Mockito.eq("failure"), Mockito.eq("smtp.test.example.com"), Mockito.eq(123),
+                Mockito.eq(true), Mockito.eq(null), Mockito.eq("N/A"), Mockito.isA(SmtpAsyncClientException.class));
     }
 
     /**
@@ -700,6 +711,7 @@ public class SmtpAsyncClientTest {
         Mockito.when(bootstrap.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(nettyConnectFuture);
         Mockito.when(nettyChannel.isActive()).thenReturn(true);
         Mockito.when(logger.isTraceEnabled()).thenReturn(true);
+        Mockito.when(logger.isErrorEnabled()).thenReturn(true).thenReturn(false);
 
         final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
         final Future<SmtpAsyncCreateSessionResponse> future = client.createSession(
@@ -757,6 +769,16 @@ public class SmtpAsyncClientTest {
                 Mockito.eq(true), Mockito.eq(null), Mockito.eq("N/A"), Mockito.isA(SmtpAsyncClientException.class));
         Mockito.verify(nettyChannel, Mockito.times(1)).isActive();
         Mockito.verify(nettyChannel, Mockito.times(1)).close();
+
+        // Create session again to verify logger when isErrorEnabled() is false.
+        client.createSession(
+                SmtpAsyncSessionData.newBuilder("smtp.test.example.com", 123, true).setSessionContext("myCtxFail").build(),
+                new SmtpAsyncSessionConfig().setEnableStarttls(false), SmtpAsyncSession.DebugMode.DEBUG_OFF);
+        // verify logging messages
+        Mockito.verify(logger, Mockito.times(1)).error(
+                Mockito.eq("[{},{}] connect operation complete. result={}, host={}, port={}, sslEnabled={}, sniNames={}, sessionMode={}"),
+                Mockito.eq("N/A"), Mockito.eq("myCtxFail"), Mockito.eq("failure"), Mockito.eq("smtp.test.example.com"), Mockito.eq(123),
+                Mockito.eq(true), Mockito.eq(null), Mockito.eq("N/A"), Mockito.isA(SmtpAsyncClientException.class));
     }
 
     /**
@@ -779,6 +801,7 @@ public class SmtpAsyncClientTest {
         Mockito.when(nettyConnectFuture.channel()).thenReturn(nettyChannel);
         Mockito.when(bootstrap.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(nettyConnectFuture);
         Mockito.when(logger.isTraceEnabled()).thenReturn(true);
+        Mockito.when(logger.isErrorEnabled()).thenReturn(true).thenReturn(false);
 
         final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
         final Future<SmtpAsyncCreateSessionResponse> future = client.createSession(
@@ -837,6 +860,17 @@ public class SmtpAsyncClientTest {
                 Mockito.eq(false), Mockito.eq(null), Mockito.eq("N/A"), Mockito.isA(SmtpAsyncClientException.class));
         Mockito.verify(nettyChannel, Mockito.times(1)).isActive();
         Mockito.verify(nettyChannel, Mockito.times(0)).close(); // since channel is not active
+
+        // Create session again to verify logger when isErrorEnabled() is false.
+        client.createSession(
+                SmtpAsyncSessionData.newBuilder("smtp.test.example.com", 123, false).setSessionContext("myCtxFail")
+                        .build(),
+                new SmtpAsyncSessionConfig().setEnableStarttls(false), SmtpAsyncSession.DebugMode.DEBUG_OFF);
+        // verify logging messages
+        Mockito.verify(logger, Mockito.times(1)).error(
+                Mockito.eq("[{},{}] connect operation complete. result={}, host={}, port={}, sslEnabled={}, sniNames={}, sessionMode={}"),
+                Mockito.eq("N/A"), Mockito.eq("myCtxFail"), Mockito.eq("failure"), Mockito.eq("smtp.test.example.com"), Mockito.eq(123),
+                Mockito.eq(false), Mockito.eq(null), Mockito.eq("N/A"), Mockito.isA(SmtpAsyncClientException.class));
     }
 
     /**
@@ -859,6 +893,7 @@ public class SmtpAsyncClientTest {
         Mockito.when(nettyConnectFuture.channel()).thenReturn(nettyChannel);
         Mockito.when(bootstrap.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(nettyConnectFuture);
         Mockito.when(logger.isTraceEnabled()).thenReturn(true);
+        Mockito.when(logger.isErrorEnabled()).thenReturn(true).thenReturn(false);
 
         final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
         final SmtpFuture<SmtpAsyncCreateSessionResponse> future = new SmtpFuture<SmtpAsyncCreateSessionResponse>();
@@ -919,6 +954,17 @@ public class SmtpAsyncClientTest {
                 Mockito.eq(null), Mockito.eq("N/A"), Mockito.isA(SmtpAsyncClientException.class));
         Mockito.verify(nettyChannel, Mockito.times(1)).isActive();
         Mockito.verify(nettyChannel, Mockito.times(0)).close(); // since channel is not active
+
+        // Create session again to verify logger when isErrorEnabled() is false.
+        client.createStartTlsSession(SmtpAsyncSessionData.newBuilder("smtp.test.example.com", 123, true).setSessionContext("myCtxFail")
+                        .build(),
+                new SmtpAsyncSessionConfig().setEnableStarttls(true), SmtpAsyncSession.DebugMode.DEBUG_OFF, future);
+        // verify logging messages
+        Mockito.verify(logger, Mockito.times(1)).error(
+                Mockito.eq("[{},{}] connect operation complete. result={}, host={}, port={}, sslEnabled={}, sniNames={}, sessionMode={}"), Mockito
+                        .eq("N/A"),
+                Mockito.eq("myCtxFail"), Mockito.eq("failure"), Mockito.eq("smtp.test.example.com"), Mockito.eq(123), Mockito.eq(false),
+                Mockito.eq(null), Mockito.eq("N/A"), Mockito.isA(SmtpAsyncClientException.class));
     }
 
     /**
@@ -1040,6 +1086,7 @@ public class SmtpAsyncClientTest {
         final EventLoopGroup group = Mockito.mock(EventLoopGroup.class);
         final Logger logger = Mockito.mock(Logger.class);
         Mockito.when(logger.isDebugEnabled()).thenReturn(true);
+        Mockito.when(logger.isErrorEnabled()).thenReturn(true).thenReturn(false);
 
         final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
         final SmtpAsyncSessionConfig config = new SmtpAsyncSessionConfig();
@@ -1101,6 +1148,16 @@ public class SmtpAsyncClientTest {
         Assert.assertEquals(actual.getCause().getClass(), ConnectTimeoutException.class, "Cause should be connection timeout exception");
         Assert.assertSame(actual.getCause(), nettyConnectFuture.cause(), "Cause should be same object");
         Assert.assertEquals(actual.getFailureType(), FailureType.WRITE_TO_SERVER_FAILED, "Exception type should be CONNECTION_TIMEOUT_EXCEPTION");
+
+        // Create session again to verify logger when isErrorEnabled() is false.
+        client.createSession(
+                SmtpAsyncSessionData.newBuilder("smtp.foo.com", 993, true).setSessionContext("N/A").setSniNames(Collections.emptyList()).build(),
+                new SmtpAsyncSessionConfig(), SmtpAsyncSession.DebugMode.DEBUG_ON); // verify session creation
+        // verify logging messages
+        Mockito.verify(logger, Mockito.times(1)).error(
+                Mockito.eq("[{},{}] connect operation complete. result={}, host={}, port={}, sslEnabled={}, sniNames={}, sessionMode={}"),
+                Mockito.eq("N/A"), Mockito.eq("N/A"), Mockito.eq("failure"), Mockito.eq("smtp.foo.com"), Mockito.eq(993), Mockito.eq(true),
+                Mockito.eq(Collections.emptyList()), Mockito.eq("N/A"), Mockito.isA(SmtpAsyncClientException.class));
     }
 
     /**

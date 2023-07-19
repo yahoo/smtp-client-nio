@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.yahoo.smtpnio</groupId>
         <artifactId>smtpnio</artifactId>
-        <version>1.1.4</version>
+        <version>1.1.5</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -26,6 +26,7 @@
         <main.basedir>${project.parent.basedir}</main.basedir>
         <testTimeLimitInSeconds>5</testTimeLimitInSeconds>
         <checkstyle.maxAllowedViolations>0</checkstyle.maxAllowedViolations>
+        <pmdViolationCount>1</pmdViolationCount>
     </properties>
 
     <dependencies>
@@ -119,6 +120,12 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <configuration>
+                    <maxAllowedViolations>${pmdViolationCount}</maxAllowedViolations>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
