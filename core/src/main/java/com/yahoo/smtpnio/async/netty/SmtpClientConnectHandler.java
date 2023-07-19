@@ -106,7 +106,9 @@ public class SmtpClientConnectHandler extends MessageToMessageDecoder<SmtpRespon
             sessionCreatedFuture.done(response);
 
         } else {
-            logger.error("[{},{}] Server response was not successful:{}", sessionId, sessionCtx, serverResponse.toString());
+            if (logger.isErrorEnabled()) {
+                logger.error("[{},{}] Server response was not successful:{}", sessionId, sessionCtx, serverResponse.toString());
+            }
             sessionCreatedFuture.done(new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_INVALID_GREETING_CODE, sessionId, sessionCtx,
                     serverResponse.toString()));
             close(ctx); // closing the channel if we are not getting a ok greeting

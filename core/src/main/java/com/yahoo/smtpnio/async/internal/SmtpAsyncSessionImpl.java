@@ -376,7 +376,9 @@ public class SmtpAsyncSessionImpl implements SmtpAsyncSession, SmtpCommandChanne
         }
 
         // log at error level
-        logger.error(SESSION_LOG_WITH_EXCEPTION, sessionId, getUserInfo(), cause);
+        if (logger.isErrorEnabled()) {
+            logger.error(SESSION_LOG_WITH_EXCEPTION, sessionId, getUserInfo(), cause);
+        }
         entry.getFuture().done(cause);
 
         // close session when encountering channel exception since the health of session is frail/unknown.

@@ -276,8 +276,10 @@ public class SmtpAsyncClient {
             @Nonnull final SmtpAsyncClientException ex, @Nonnull final SmtpFuture<SmtpAsyncCreateSessionResponse> sessionCreatedFuture,
             @Nullable final Channel channel, final boolean isSsl) {
         sessionCreatedFuture.done(ex);
-        logger.error(CONNECT_RESULT_REC, sessionId, sessionData.getSessionContext(), "failure", sessionData.getHost(), sessionData.getPort(), isSsl,
-                sessionData.getSniNames(), "N/A", ex);
+        if (logger.isErrorEnabled()) {
+            logger.error(CONNECT_RESULT_REC, sessionId, sessionData.getSessionContext(), "failure", sessionData.getHost(),
+                    sessionData.getPort(), isSsl, sessionData.getSniNames(), "N/A", ex);
+        }
         if (channel != null && channel.isActive()) {
             channel.close();
         }
