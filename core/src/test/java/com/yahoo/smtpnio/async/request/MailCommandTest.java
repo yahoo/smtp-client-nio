@@ -157,11 +157,12 @@ public class MailCommandTest {
     public void testMailParameter() throws SmtpAsyncClientException, IllegalAccessException {
         final SmtpRequest cmd = new MailCommand("bob", new ArrayList<MailCommand.MailParameter>() { {
             add(new MailCommand.MailParameter("AUTH", "value"));
-            add(new MailCommand.MailParameter("Just_key"));
+            // a hyphen, not an underscore: esmtp-keyword is (ALPHA / DIGIT) *(ALPHA / DIGIT / "-")
+            add(new MailCommand.MailParameter("Just-key"));
             add(new MailCommand.MailParameter("key2"));
         } });
         Assert.assertEquals(cmd.getCommandLineBytes().toString(StandardCharsets.US_ASCII),
-                "MAIL FROM:<bob> AUTH=value Just_key key2\r\n", "Expected results mismatched");
+                "MAIL FROM:<bob> AUTH=value Just-key key2\r\n", "Expected results mismatched");
         cmd.cleanup();
         // Verify if cleanup happened correctly.
         for (final Field field : fieldsToCheck) {

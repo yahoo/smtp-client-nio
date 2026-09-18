@@ -10,6 +10,7 @@ import javax.annotation.Nonnull;
 
 import org.apache.commons.codec.binary.Base64;
 
+import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
 import com.yahoo.smtpnio.async.response.SmtpResponse;
 
 import io.netty.buffer.ByteBuf;
@@ -56,12 +57,13 @@ public class AuthenticationXoauth2Command extends AbstractAuthenticationCommand 
 
     @Nonnull
     @Override
-    public ByteBuf getCommandLineBytes() {
-        // XOAUTH2 format: "user={username}^Aauth=Bearer {token}^A^A"
-        final String commandStr = new StringBuilder()
-                .append(USER_EQUAL).append(username).append(SmtpClientConstants.SOH)
-                .append(AUTH_BEARER).append(token).append(SmtpClientConstants.SOH).append(SmtpClientConstants.SOH)
-                .toString();
+    public ByteBuf getCommandLineBytes() throws SmtpAsyncClientException {
+        // XOAUTH2 format: "user={username}^Aauth=Bearer {token}^A^A", SOH separates the fields so neither argument may carry one
+        final StringBuilder commandBuilder = new StringBuilder().append(USER_EQUAL);
+        ARGUMENT_FORMATTER.formatArgument(username, commandBuilder, "username");
+        commandBuilder.append(SmtpClientConstants.SOH).append(AUTH_BEARER);
+        ARGUMENT_FORMATTER.formatArgument(token, commandBuilder, "access token");
+        final String commandStr = commandBuilder.append(SmtpClientConstants.SOH).append(SmtpClientConstants.SOH).toString();
         return Unpooled.buffer(AUTH_B.length + getMechanism().length() + commandStr.length() + SmtpClientConstants.PADDING_LEN).writeBytes(AUTH_B)
                 .writeByte(SmtpClientConstants.SPACE).writeBytes(getMechanism().getBytes(StandardCharsets.US_ASCII))
                 .writeByte(SmtpClientConstants.SPACE).writeBytes(Base64.encodeBase64(commandStr.getBytes(StandardCharsets.UTF_8))).writeBytes(CRLF_B);

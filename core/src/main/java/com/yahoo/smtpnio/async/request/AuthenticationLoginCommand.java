@@ -82,19 +82,25 @@ public class AuthenticationLoginCommand extends AbstractAuthenticationCommand {
                     new StringBuilder("server replies an error: ").append(serverResponse).toString());
         }
         final String input;
+        final String inputName;
+        final InputState stateAfterInput;
         if (nextInputState == InputState.USERNAME) {
             input = username;
-            nextInputState = InputState.PASSWORD;
+            inputName = "username";
+            stateAfterInput = InputState.PASSWORD;
         } else if (nextInputState == InputState.PASSWORD) {
             input = password;
-            nextInputState = InputState.COMPLETED;
+            inputName = "password";
+            stateAfterInput = InputState.COMPLETED;
         } else { // COMPLETED state, normal execution should not reach here
             throw new SmtpAsyncClientException(
                     SmtpAsyncClientException.FailureType.MORE_INPUT_THAN_EXPECTED);
         }
-        return Unpooled.buffer(input.length() + CRLF_B.length)
-                .writeBytes(input.getBytes(StandardCharsets.US_ASCII))
-                .writeBytes(CRLF_B);
+        // each credential is sent verbatim as its own command line, so it must not carry a line terminator
+        final ByteBuf res = Unpooled.buffer(input.length() + CRLF_B.length);
+        ARGUMENT_FORMATTER.formatArgument(input, res, inputName);
+        nextInputState = stateAfterInput; // only advanced once the credential is known to be safe to send
+        return res.writeBytes(CRLF_B);
     }
 
     @Override

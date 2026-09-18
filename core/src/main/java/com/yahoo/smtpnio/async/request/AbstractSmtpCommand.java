@@ -22,6 +22,9 @@ public abstract class AbstractSmtpCommand implements SmtpRequest {
     /** Constant for the CR and LF bytes. */
     protected static final byte[] CRLF_B = { '\r', '\n' };
 
+    /** Writes caller-supplied arguments into the command line, refusing any that SMTP cannot represent. Stateless, so shared. */
+    protected static final SmtpArgumentFormatter ARGUMENT_FORMATTER = new SmtpArgumentFormatter();
+
     /** The SMTP command name. */
     protected String command;
 
@@ -47,7 +50,7 @@ public abstract class AbstractSmtpCommand implements SmtpRequest {
 
     @Nonnull
     @Override
-    public ByteBuf getCommandLineBytes() {
+    public ByteBuf getCommandLineBytes() throws SmtpAsyncClientException {
         return Unpooled.buffer(command.length() + CRLF_B.length)
                 .writeBytes(command.getBytes(StandardCharsets.US_ASCII))
                 .writeBytes(CRLF_B);

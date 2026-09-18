@@ -8,6 +8,8 @@ import java.nio.charset.StandardCharsets;
 
 import javax.annotation.Nonnull;
 
+import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
@@ -34,12 +36,12 @@ public class ExtendedHelloCommand extends AbstractSmtpCommand {
 
     @Nonnull
     @Override
-    public ByteBuf getCommandLineBytes() {
-        return Unpooled.buffer(command.length() + SmtpClientConstants.CHAR_LEN + name.length() + CRLF_B.length)
+    public ByteBuf getCommandLineBytes() throws SmtpAsyncClientException {
+        final ByteBuf res = Unpooled.buffer(command.length() + SmtpClientConstants.CHAR_LEN + name.length() + CRLF_B.length)
                 .writeBytes(command.getBytes(StandardCharsets.US_ASCII))
-                .writeByte(SmtpClientConstants.SPACE)
-                .writeBytes(name.getBytes(StandardCharsets.US_ASCII))
-                .writeBytes(CRLF_B);
+                .writeByte(SmtpClientConstants.SPACE);
+        ARGUMENT_FORMATTER.formatArgument(name, res, "name");
+        return res.writeBytes(CRLF_B);
     }
 
     @Override
