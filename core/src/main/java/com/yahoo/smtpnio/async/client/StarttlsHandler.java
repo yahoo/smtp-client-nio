@@ -182,8 +182,13 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
         case GET_SERVER_GREETING:
             // check server greeting
             if (serverResponse.getCode().value() == SmtpResponse.Code.GREETING) {
-                channel.writeAndFlush(new ExtendedHelloCommand(EHLO_CLIENT_NAME).getCommandLineBytes());
-                this.startTlsState = StartTlsState.GET_EHLO_RESP;
+                try {
+                    channel.writeAndFlush(new ExtendedHelloCommand(EHLO_CLIENT_NAME).getCommandLineBytes());
+                    this.startTlsState = StartTlsState.GET_EHLO_RESP;
+                } catch (final SmtpAsyncClientException e) {
+                    // unreachable in practice, EHLO_CLIENT_NAME is a constant with no control characters
+                    failedCause = e;
+                }
             } else {
                 failedCause = new SmtpAsyncClientException(FailureType.CONNECTION_FAILED_INVALID_GREETING_CODE, sessionId, sessionCtx,
                         serverResponse.toString());
@@ -205,9 +210,14 @@ public class StarttlsHandler extends MessageToMessageDecoder<SmtpResponse> {
                     // server doesn't reply STARTTLS capability
                     failedCause = new SmtpAsyncClientException(FailureType.NO_STARTTLS_CAPABILITY, sessionId, sessionCtx, serverResponse.toString());
                 } else {
-                    // confirmed STARTTLS capability from server, send STARTTLS command
-                    channel.writeAndFlush(new StarttlsCommand().getCommandLineBytes());
-                    this.startTlsState = StartTlsState.GET_STARTTLS_RESP;
+                    try {
+                        // confirmed STARTTLS capability from server, send STARTTLS command
+                        channel.writeAndFlush(new StarttlsCommand().getCommandLineBytes());
+                        this.startTlsState = StartTlsState.GET_STARTTLS_RESP;
+                    } catch (final SmtpAsyncClientException e) {
+                        // unreachable in practice, STARTTLS takes no arguments
+                        failedCause = e;
+                    }
                 }
             }
             break;

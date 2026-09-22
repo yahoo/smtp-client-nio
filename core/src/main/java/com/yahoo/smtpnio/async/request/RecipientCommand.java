@@ -8,6 +8,8 @@ import java.nio.charset.StandardCharsets;
 
 import javax.annotation.Nonnull;
 
+import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
@@ -37,17 +39,17 @@ public class RecipientCommand extends AbstractSmtpCommand {
 
     @Nonnull
     @Override
-    public ByteBuf getCommandLineBytes() {
+    public ByteBuf getCommandLineBytes() throws SmtpAsyncClientException {
         // space, colon, left and right angle brackets make up 4 of the extra chars
         final int len = command.length() + TO.length() + recipient.length() + CRLF_B.length + SmtpClientConstants.PADDING_LEN;
-        return Unpooled.buffer(len)
+        final ByteBuf res = Unpooled.buffer(len)
                 .writeBytes(command.getBytes(StandardCharsets.US_ASCII))
                 .writeByte(SmtpClientConstants.SPACE)
                 .writeBytes(TO.getBytes(StandardCharsets.US_ASCII))
                 .writeByte(SmtpClientConstants.COLON)
-                .writeByte(SmtpClientConstants.L_ANGLE_BRACKET)
-                .writeBytes(recipient.getBytes(StandardCharsets.US_ASCII))
-                .writeByte(SmtpClientConstants.R_ANGLE_BRACKET)
+                .writeByte(SmtpClientConstants.L_ANGLE_BRACKET);
+        ARGUMENT_FORMATTER.formatArgument(recipient, res, "recipient");
+        return res.writeByte(SmtpClientConstants.R_ANGLE_BRACKET)
                 .writeBytes(CRLF_B);
     }
 

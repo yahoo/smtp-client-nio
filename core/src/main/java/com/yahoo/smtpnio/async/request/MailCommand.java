@@ -10,6 +10,8 @@ import java.util.Collection;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
+import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
@@ -107,7 +109,7 @@ public class MailCommand extends AbstractSmtpCommand {
 
     @Nonnull
     @Override
-    public ByteBuf getCommandLineBytes() {
+    public ByteBuf getCommandLineBytes() throws SmtpAsyncClientException {
         // space, colon, left and right angle brackets make up 4 of extra chars; padding is added to account for possible additional arguments
         final int len = command.length() + FROM.length() + sender.length() + CRLF_B.length + SmtpClientConstants.PADDING_LEN;
         final ByteBuf res = Unpooled.buffer(len)
@@ -115,17 +117,17 @@ public class MailCommand extends AbstractSmtpCommand {
                 .writeByte(SmtpClientConstants.SPACE)
                 .writeBytes(FROM.getBytes(StandardCharsets.US_ASCII))
                 .writeByte(SmtpClientConstants.COLON)
-                .writeByte(SmtpClientConstants.L_ANGLE_BRACKET)
-                .writeBytes(sender.getBytes(StandardCharsets.US_ASCII))
-                .writeByte(SmtpClientConstants.R_ANGLE_BRACKET);
+                .writeByte(SmtpClientConstants.L_ANGLE_BRACKET);
+        ARGUMENT_FORMATTER.formatArgument(sender, res, "sender");
+        res.writeByte(SmtpClientConstants.R_ANGLE_BRACKET);
 
         if (mailParameters != null) { // adds the additional mail parameters if available
             for (final MailParameter mailParameter : mailParameters) {
-                res.writeByte(SmtpClientConstants.SPACE)
-                        .writeBytes(mailParameter.keyword.getBytes(StandardCharsets.US_ASCII));
+                res.writeByte(SmtpClientConstants.SPACE);
+                ARGUMENT_FORMATTER.formatEsmtpKeyword(mailParameter.keyword, res, "mail parameter keyword");
                 if (mailParameter.value != null) {
-                    res.writeByte(SmtpClientConstants.EQUAL)
-                            .writeBytes(mailParameter.value.getBytes(StandardCharsets.US_ASCII));
+                    res.writeByte(SmtpClientConstants.EQUAL);
+                    ARGUMENT_FORMATTER.formatEsmtpValue(mailParameter.value, res, "mail parameter value");
                 }
             }
         }
