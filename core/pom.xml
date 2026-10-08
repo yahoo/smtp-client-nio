@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.yahoo.smtpnio</groupId>
         <artifactId>smtpnio</artifactId>
-        <version>1.2.0</version>
+        <version>2.0.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -55,7 +55,7 @@
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
-            <artifactId>mockito-all</artifactId>
+            <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -125,14 +125,6 @@
                 <artifactId>maven-pmd-plugin</artifactId>
                 <configuration>
                     <maxAllowedViolations>${pmdViolationCount}</maxAllowedViolations>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>9</source>
-                    <target>9</target>
                 </configuration>
             </plugin>
         </plugins>

@@ -17,7 +17,6 @@ import java.util.concurrent.TimeoutException;
 import javax.net.ssl.SSLException;
 
 import org.mockito.Mockito;
-import org.mockito.internal.util.reflection.Whitebox;
 import org.slf4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -178,8 +177,8 @@ public class SslDetectHandlerTest {
         // verify smtpFuture
         Assert.assertFalse(smtpFuture.isDone(), "Future shouldn't be done");
         // verify logger
-        Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.anyLong(), Mockito.anyString(), Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyInt(), Mockito.anyBoolean(), Mockito.anyObject());
+        Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.anyLong(), Mockito.any(), Mockito.any(),
+                Mockito.any(), Mockito.anyInt(), Mockito.anyBoolean(), Mockito.any());
         Mockito.verify(pipeline, Mockito.times(1)).remove(handler);
         // Verify cleanup
         for (final Field field : fieldsToCheck) {
@@ -310,8 +309,8 @@ public class SslDetectHandlerTest {
         Assert.assertFalse(smtpFuture.isDone(), "Future shouldn't be done");
         Mockito.verify(smtpAsyncClient, Mockito.times(1)).createStartTlsSession(sessionData, sessionConfig, DebugMode.DEBUG_OFF, smtpFuture);
         // verify logger
-        Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.anyLong(), Mockito.anyString(), Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyInt(), Mockito.anyBoolean(), Mockito.anyObject());
+        Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.anyLong(), Mockito.any(), Mockito.any(),
+                Mockito.any(), Mockito.anyInt(), Mockito.anyBoolean(), Mockito.any());
 
         for (final Field field : fieldsToCheck) {
             Assert.assertNull(field.get(handler), "Cleanup should set " + field.getName() + " as null");
@@ -351,8 +350,8 @@ public class SslDetectHandlerTest {
 
         Mockito.verify(ctx, Mockito.times(0)).close();
         Mockito.verify(channel, Mockito.times(0)).isActive();
-        Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.anyLong(), Mockito.anyString(), Mockito.anyString(),
-                Mockito.anyString(), Mockito.anyInt(), Mockito.anyBoolean(), Mockito.anyObject());
+        Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.anyLong(), Mockito.any(), Mockito.any(),
+                Mockito.any(), Mockito.anyInt(), Mockito.anyBoolean(), Mockito.any());
     }
 
     /**
@@ -461,9 +460,14 @@ public class SslDetectHandlerTest {
 
         final SslDetectHandler handler = new SslDetectHandler(SESSION_ID, sessionData, sessionConfig, logger, DebugMode.DEBUG_ON, smtpAsyncClient,
                 smtpFuture);
-        Whitebox.setInternalState(handler, "isReconnecting", true);
-
         final ChannelHandlerContext ctx = Mockito.mock(ChannelHandlerContext.class);
+        final Channel channel = Mockito.mock(Channel.class);
+        Mockito.when(ctx.channel()).thenReturn(channel);
+
+        // NotSslRecordException triggers a reconnection without SSL
+        final SSLException sslEx = Mockito.mock(SSLException.class);
+        Mockito.when(sslEx.getCause()).thenReturn(Mockito.mock(NotSslRecordException.class));
+        handler.exceptionCaught(ctx, sslEx);
 
         handler.channelInactive(ctx);
         Assert.assertFalse(smtpFuture.isDone(), "Future should be done");
