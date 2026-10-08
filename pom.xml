@@ -5,14 +5,10 @@
     <groupId>com.yahoo.smtpnio</groupId>
     <artifactId>smtpnio</artifactId>
     <packaging>pom</packaging>
-    <version>1.2.0</version>
+    <version>2.0.0</version>
     <name>${project.artifactId}</name>
     <url>https://github.com/yahoo/smtp-client-nio</url>
     <description>Parent POM file for smtpnio project</description>
-    <prerequisites>
-        <maven>3.0</maven>
-    </prerequisites>
-
     <modules>
         <module>core</module>
     </modules>
@@ -61,14 +57,15 @@
         <project.reporting.outputEncoding>${project.build.sourceEncoding}</project.reporting.outputEncoding>
         <excludedJNILibraries />
         <excludedWarJNILibraries />
-        <jdk.version>1.8</jdk.version>
+        <jdk.version>21</jdk.version>
         <netty.version>4.2.19.Final</netty.version>
-        <maven-surefire-plugin.version>3.1.2</maven-surefire-plugin.version>
-        <maven-pmd-plugin.version>3.21.0</maven-pmd-plugin.version>
-        <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
+        <maven-surefire-plugin.version>3.6.0</maven-surefire-plugin.version>
+        <maven-pmd-plugin.version>3.28.0</maven-pmd-plugin.version>
+        <pmd.version>7.28.0</pmd.version>
+        <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
         <jersey.version>2.36</jersey.version>
         <jackson.version>2.10.0</jackson.version>
-        <jacoco-maven-plugin.version>0.8.10</jacoco-maven-plugin.version>
+        <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
         <testTimeLimitInSeconds>0</testTimeLimitInSeconds>
         <main.basedir>${project.basedir}</main.basedir>
     </properties>
@@ -83,7 +80,7 @@
             <dependency>
                 <groupId>org.testng</groupId>
                 <artifactId>testng</artifactId>
-                <version>7.7.0</version>
+                <version>7.12.0</version>
                 <scope>test</scope>
                 <exclusions>
                     <exclusion>
@@ -107,28 +104,22 @@
             <dependency>
                 <groupId>com.sun.mail</groupId>
                 <artifactId>javax.mail</artifactId>
-                <version>1.5.5</version>
+                <version>1.6.2</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
-                <version>1.7.36</version>
+                <version>2.0.20</version>
             </dependency>
             <dependency>
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
-                <version>1.15</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mockito</groupId>
-                <artifactId>mockito-all</artifactId>
-                <version>1.10.19</version>
-                <scope>test</scope>
+                <version>1.22.1</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>5.4.0</version>
+                <version>5.24.0</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>
@@ -140,7 +131,7 @@
             <extension>
                 <groupId>org.apache.maven.wagon</groupId>
                 <artifactId>wagon-ssh-external</artifactId>
-                <version>1.0-beta-6</version>
+                <version>3.5.3</version>
             </extension>
         </extensions>
         <pluginManagement>
@@ -153,65 +144,84 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.11.0</version>
+                    <version>3.16.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>build-helper-maven-plugin</artifactId>
-                    <version>3.4.0</version>
+                    <version>3.6.2</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-release-plugin</artifactId>
-                    <version>3.0.0-M6</version>
+                    <version>3.3.1</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-assembly-plugin</artifactId>
-                    <version>3.3.0</version>
+                    <version>3.8.0</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-clean-plugin</artifactId>
-                    <version>3.2.0</version>
+                    <version>3.5.0</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-enforcer-plugin</artifactId>
-                    <version>3.3.0</version>
+                    <version>3.6.3</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-pmd-plugin</artifactId>
                     <version>${maven-pmd-plugin.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>net.sourceforge.pmd</groupId>
+                            <artifactId>pmd-core</artifactId>
+                            <version>${pmd.version}</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>net.sourceforge.pmd</groupId>
+                            <artifactId>pmd-java</artifactId>
+                            <version>${pmd.version}</version>
+                        </dependency>
+                    </dependencies>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
                     <version>${maven-checkstyle-plugin.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>com.puppycrawl.tools</groupId>
+                            <artifactId>checkstyle</artifactId>
+                            <version>14.3.0</version>
+                        </dependency>
+                    </dependencies>
                 </plugin>
                 <plugin>
                     <artifactId>maven-project-info-reports-plugin</artifactId>
-                    <version>3.3.0</version>
+                    <version>3.9.0</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-site-plugin</artifactId>
-                    <version>3.4</version>
+                    <version>3.22.0</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-source-plugin</artifactId>
-                    <version>3.2.1</version>
+                    <version>3.4.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
-                    <version>3.1.0</version>
+                    <version>3.6.4</version>
                 </plugin>
                 <plugin>
                     <groupId>com.github.spotbugs</groupId>
                     <artifactId>spotbugs-maven-plugin</artifactId>
-                    <version>4.7.3.5</version>
+                    <version>4.10.4.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-scm-plugin</artifactId>
-                    <version>2.0.0-M1</version>
+                    <version>2.2.1</version>
                     <inherited>false</inherited>
                 </plugin>
                 <plugin>
@@ -313,11 +323,9 @@
                     <fork>true</fork>
                     <meminitial>128m</meminitial>
                     <maxmem>512m</maxmem>
-                    <source>${jdk.version}</source>
-                    <target>${jdk.version}</target>
+                    <release>${jdk.version}</release>
                     <showDeprecation>true</showDeprecation>
                     <showWarnings>true</showWarnings>
-                    <optimize>true</optimize>
                     <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
@@ -335,6 +343,9 @@
                                 <requireJavaVersion>
                                     <version>${jdk.version}</version>
                                 </requireJavaVersion>
+                                <requireMavenVersion>
+                                    <version>3.6.3</version>
+                                </requireMavenVersion>
                             </rules>
                         </configuration>
                     </execution>
@@ -366,17 +377,17 @@
                     <dependency>
                         <groupId>com.github.spotbugs</groupId>
                         <artifactId>spotbugs</artifactId>
-                        <version>4.7.3</version>
+                        <version>4.10.4</version>
                     </dependency>
                     <dependency>
                         <groupId>com.github.spotbugs</groupId>
                         <artifactId>spotbugs-annotations</artifactId>
-                        <version>4.7.3</version>
+                        <version>4.10.4</version>
                     </dependency>
                     <dependency>
                         <groupId>org.dom4j</groupId>
                         <artifactId>dom4j</artifactId>
-                        <version>2.1.4</version>
+                        <version>2.2.0</version>
                     </dependency>
                 </dependencies>
                 <!-- https://spotbugs.github.io/
@@ -385,7 +396,6 @@
                     its own memory requirements, but the following system variable will allow
                     you to do so for Maven: export MAVEN_OPTS=-Xmx2048M -->
                 <configuration>
-                    <fork>true</fork>
                     <maxHeap>2048</maxHeap>
                     <!-- Fail build in case of spotbugs errors during build. -->
                     <failOnError>true</failOnError>
@@ -397,7 +407,6 @@
                     <threshold>medium</threshold>
                     <!-- No XML output from Findgbugs. -->
                     <xmlOutput>false</xmlOutput>
-                    <spotbugsXmlOutput>false</spotbugsXmlOutput>
                 </configuration>
                 <executions>
                     <!-- Ensures that Spotbugs inspects source code when
@@ -455,7 +464,7 @@
                         <id>checkstyle</id>
                         <phase>validate</phase>
                         <configuration>
-                            <encoding>UTF-8</encoding>
+                            <inputEncoding>UTF-8</inputEncoding>
                             <consoleOutput>true</consoleOutput>
                             <configLocation>checkstyle.xml</configLocation>
                             <consoleOutput>true</consoleOutput>
@@ -513,7 +522,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.4.0</version>
+                <version>3.12.0</version>
                 <configuration>
                     <source>8</source>
                 </configuration>
@@ -565,7 +574,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>3.0.1</version>
+                        <version>3.2.8</version>
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
