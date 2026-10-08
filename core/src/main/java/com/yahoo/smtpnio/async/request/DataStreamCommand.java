@@ -88,7 +88,7 @@ public class DataStreamCommand extends AbstractSmtpCommand {
      */
     private byte[] toByteArray(final InputStream inputStream) throws IOException {
         // We use a ThresholdingOutputStream to avoid reading AND writing more than Integer.MAX_VALUE.
-        try (final ByteArrayOutputStream ubaOutput = new ByteArrayOutputStream()) {
+        try (ByteArrayOutputStream ubaOutput = new ByteArrayOutputStream()) {
             byte[] buffer = new byte[1024];
             long count = 0;
             int n;

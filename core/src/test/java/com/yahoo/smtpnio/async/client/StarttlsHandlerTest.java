@@ -185,7 +185,7 @@ public class StarttlsHandlerTest {
 
         Mockito.verify(pipeline, Mockito.times(1)).remove(handler);
         Assert.assertTrue(smtpFuture.isDone(), "Future should be done");
-        Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.anyLong(), Mockito.anyString());
+        Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.anyLong(), Mockito.any());
         final SmtpAsyncCreateSessionResponse asyncSession = smtpFuture.get(5, TimeUnit.MILLISECONDS);
         Assert.assertNotNull(asyncSession, "Expect SmtpAsyncSession not to be null");
     }
@@ -222,7 +222,7 @@ public class StarttlsHandlerTest {
         final String errMsg = "504 some error response";
         final SmtpResponse resp = new SmtpResponse(errMsg);
         handler.decode(ctx, resp, out);
-        Mockito.verify(channel, Mockito.times(0)).writeAndFlush(Mockito.anyObject());
+        Mockito.verify(channel, Mockito.times(0)).writeAndFlush(Mockito.any());
         Assert.assertTrue(smtpFuture.isDone(), "Future should be done");
 
         Mockito.verify(logger, Mockito.times(1)).error(Mockito.eq("[{},{}] startTls failed."), Mockito.eq(SESSION_ID), Mockito.eq("myCtx"),
@@ -282,7 +282,7 @@ public class StarttlsHandlerTest {
         final String errMsg = "504 some error response";
         final SmtpResponse resp = new SmtpResponse(errMsg);
         handler.decode(ctx, resp, out);
-        Mockito.verify(channel, Mockito.times(1)).writeAndFlush(Mockito.anyObject());
+        Mockito.verify(channel, Mockito.times(1)).writeAndFlush(Mockito.any());
         Assert.assertTrue(smtpFuture.isDone(), "Future should be done");
 
         Mockito.verify(logger, Mockito.times(1)).error(Mockito.eq("[{},{}] startTls failed."), Mockito.eq(SESSION_ID), Mockito.eq("myCtx"),

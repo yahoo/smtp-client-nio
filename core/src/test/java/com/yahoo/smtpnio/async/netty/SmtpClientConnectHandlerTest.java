@@ -122,7 +122,7 @@ public class SmtpClientConnectHandlerTest {
         final List<Object> out = new ArrayList<>();
         handler.decode(ctx, resp, out);
 
-        Mockito.verify(logger, Mockito.times(1)).error(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
+        Mockito.verify(logger, Mockito.times(1)).error(Mockito.anyString(), Mockito.any(), Mockito.any(), Mockito.any());
         Mockito.verify(pipeline, Mockito.times(1)).remove(Mockito.anyString());
 
         Assert.assertTrue(smtpFuture.isDone(), "Future should be done");
@@ -142,7 +142,7 @@ public class SmtpClientConnectHandlerTest {
         // decode again to verify logger when isErrorEnabled() is false
         final SmtpClientConnectHandler handler2 = new SmtpClientConnectHandler(smtpFuture, logger, DebugMode.DEBUG_ON, SESSION_ID, sessCtx);
         handler2.decode(ctx, resp, out);
-        Mockito.verify(logger, Mockito.times(1)).error(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
+        Mockito.verify(logger, Mockito.times(1)).error(Mockito.anyString(), Mockito.any(), Mockito.any(), Mockito.any());
     }
 
     /**

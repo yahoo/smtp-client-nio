@@ -90,9 +90,9 @@ public class SmtpAsyncSessionImplTest {
             Mockito.doAnswer(new Answer() {
                 @Override
                 public Object answer(final InvocationOnMock invocationOnMock) throws Throwable {
-                    final Channel aChannel = invocationOnMock.getArgumentAt(0, Channel.class);
-                    final Supplier<ChannelPromise> promise = invocationOnMock.getArgumentAt(1, Supplier.class);
-                    final SmtpResponse response = invocationOnMock.getArgumentAt(2, SmtpResponse.class);
+                    final Channel aChannel = invocationOnMock.getArgument(0);
+                    final Supplier<ChannelPromise> promise = invocationOnMock.getArgument(1);
+                    final SmtpResponse response = invocationOnMock.getArgument(2);
 
                     aChannel.writeAndFlush(cmd.getNextCommandLineAfterContinuation(response), promise.get());
 
@@ -102,9 +102,9 @@ public class SmtpAsyncSessionImplTest {
 
             final SmtpFuture<SmtpAsyncResponse> future = aSession.execute(cmd);
             Mockito.verify(authWritePromise, Mockito.times(1)).addListener(Mockito.any(SmtpAsyncSessionImpl.class));
-            Mockito.verify(channel, Mockito.times(1)).writeAndFlush(Mockito.anyString(), Mockito.isA(ChannelPromise.class));
-            Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
-                    Mockito.anyString());
+            Mockito.verify(channel, Mockito.times(1)).writeAndFlush(Mockito.any(), Mockito.isA(ChannelPromise.class));
+            Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.any(), Mockito.any(),
+                    Mockito.any());
 
             // simulate write to server completed successfully
             Mockito.when(authWritePromise.isSuccess()).thenReturn(true);
@@ -117,7 +117,7 @@ public class SmtpAsyncSessionImplTest {
             Mockito.when(cmd.getNextCommandLineAfterContinuation(serverResp1))
                     .thenReturn(Unpooled.buffer().writeBytes("my_passphrase_here_in_base64".getBytes(StandardCharsets.US_ASCII)));
             aSession.handleChannelResponse(serverResp1);
-            Mockito.verify(channel, Mockito.times(2)).writeAndFlush(Mockito.anyString(), Mockito.isA(ChannelPromise.class));
+            Mockito.verify(channel, Mockito.times(2)).writeAndFlush(Mockito.any(), Mockito.isA(ChannelPromise.class));
 
             final SmtpResponse serverResp2 = new SmtpResponse("235 accepted");
             aSession.handleChannelResponse(serverResp2);
@@ -137,8 +137,8 @@ public class SmtpAsyncSessionImplTest {
                     "Response.isPositiveCompletionReply() mismatched.");
             //Assert.assertEquals(endingResp.getTag(), "a1", "tag mismatched.");
             // verify no log messages
-            Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
-                    Mockito.anyString());
+            Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.any(), Mockito.any(),
+                    Mockito.any());
         }
 
         {
@@ -150,9 +150,9 @@ public class SmtpAsyncSessionImplTest {
             final SmtpFuture<SmtpAsyncResponse> future = aSession.execute(cmd);
 
             Mockito.verify(authWritePromise3, Mockito.times(1)).addListener(Mockito.any(SmtpAsyncSessionImpl.class));
-            Mockito.verify(channel, Mockito.times(3)).writeAndFlush(Mockito.anyString(), Mockito.isA(ChannelPromise.class));
-            Mockito.verify(logger, Mockito.times(1)).debug(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
-                    Mockito.anyString());
+            Mockito.verify(channel, Mockito.times(3)).writeAndFlush(Mockito.any(), Mockito.isA(ChannelPromise.class));
+            Mockito.verify(logger, Mockito.times(1)).debug(Mockito.anyString(), Mockito.any(), Mockito.any(),
+                    Mockito.any());
 
             // simulate write to server completed successfully
             Mockito.when(authWritePromise3.isSuccess()).thenReturn(true);
@@ -444,9 +444,9 @@ public class SmtpAsyncSessionImplTest {
         final SmtpFuture<SmtpAsyncResponse> cmdFuture = aSession.execute(cmd);
 
         Mockito.verify(writeToServerPromise, Mockito.times(1)).addListener(Mockito.any(SmtpAsyncSessionImpl.class));
-        Mockito.verify(channel, Mockito.times(1)).writeAndFlush(Mockito.anyString(), Mockito.isA(ChannelPromise.class));
+        Mockito.verify(channel, Mockito.times(1)).writeAndFlush(Mockito.any(), Mockito.isA(ChannelPromise.class));
         Mockito.verify(logger, Mockito.times(1))
-                .debug(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
+                .debug(Mockito.anyString(), Mockito.any(), Mockito.any(), Mockito.any());
 
         // simulate write to server completed with isSuccess() false
         Mockito.when(writeToServerPromise.isSuccess()).thenReturn(false);
@@ -539,8 +539,8 @@ public class SmtpAsyncSessionImplTest {
         final SmtpAsyncSessionImpl aSession2 = new SmtpAsyncSessionImpl(channel2, logger, DebugMode.DEBUG_ON, SESSION_ID, pipeline2, USER_ID);
         aSession2.execute(cmd);
         // verify logging messages
-        Mockito.verify(logger, Mockito.times(1)).error(Mockito.anyString(), Mockito.anyObject(),
-                Mockito.anyObject(), Mockito.anyObject());
+        Mockito.verify(logger, Mockito.times(1)).error(Mockito.anyString(), Mockito.any(),
+                Mockito.any(), Mockito.any());
     }
 
     /**
@@ -578,9 +578,9 @@ public class SmtpAsyncSessionImplTest {
 
             final SmtpFuture<SmtpAsyncResponse> future = aSession.execute(cmd);
             Mockito.verify(authWritePromise, Mockito.times(1)).addListener(Mockito.any(SmtpAsyncSessionImpl.class));
-            Mockito.verify(channel, Mockito.times(1)).writeAndFlush(Mockito.anyString(), Mockito.isA(ChannelPromise.class));
-            Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
-                    Mockito.anyString());
+            Mockito.verify(channel, Mockito.times(1)).writeAndFlush(Mockito.any(), Mockito.isA(ChannelPromise.class));
+            Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.any(), Mockito.any(),
+                    Mockito.any());
 
             // simulate write to server completed successfully
             Mockito.when(authWritePromise.isSuccess()).thenReturn(true);
@@ -651,8 +651,8 @@ public class SmtpAsyncSessionImplTest {
             final SmtpAsyncSessionImpl aSession2 = new SmtpAsyncSessionImpl(channel2, logger, DebugMode.DEBUG_OFF, SESSION_ID, pipeline2, USER_ID);
             aSession2.execute(cmd);
             // verify logging messages
-            Mockito.verify(logger, Mockito.times(1)).error(Mockito.anyString(), Mockito.anyObject(),
-                    Mockito.anyObject(), Mockito.anyObject());
+            Mockito.verify(logger, Mockito.times(1)).error(Mockito.anyString(), Mockito.any(),
+                    Mockito.any(), Mockito.any());
         }
     }
 
@@ -689,9 +689,9 @@ public class SmtpAsyncSessionImplTest {
         final SmtpFuture<SmtpAsyncResponse> future = aSession.execute(cmd);
 
         Mockito.verify(writePromise, Mockito.times(1)).addListener(Mockito.any(SmtpAsyncSessionImpl.class));
-        Mockito.verify(channel, Mockito.times(1)).writeAndFlush(Mockito.anyString(), Mockito.isA(ChannelPromise.class));
+        Mockito.verify(channel, Mockito.times(1)).writeAndFlush(Mockito.any(), Mockito.isA(ChannelPromise.class));
         Mockito.verify(logger, Mockito.times(1))
-                .debug(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
+                .debug(Mockito.anyString(), Mockito.any(), Mockito.any(), Mockito.any());
 
         // simulate channel closed
         aSession.handleChannelClosed();
@@ -741,8 +741,8 @@ public class SmtpAsyncSessionImplTest {
         // Execute again to verify logger when isErrorEnabled() is false.
         aSession.execute(cmd);
         // verify logging messages
-        Mockito.verify(logger, Mockito.times(1)).error(Mockito.anyString(), Mockito.anyObject(),
-                Mockito.anyObject(), Mockito.anyObject());
+        Mockito.verify(logger, Mockito.times(1)).error(Mockito.anyString(), Mockito.any(),
+                Mockito.any(), Mockito.any());
     }
 
     /**
@@ -779,10 +779,10 @@ public class SmtpAsyncSessionImplTest {
         final SmtpFuture<SmtpAsyncResponse> future = aSession.execute(cmd);
 
         Mockito.verify(writePromise, Mockito.times(1)).addListener(Mockito.any(SmtpAsyncSessionImpl.class));
-        Mockito.verify(channel, Mockito.times(1)).writeAndFlush(Mockito.anyString(), Mockito.isA(ChannelPromise.class));
+        Mockito.verify(channel, Mockito.times(1)).writeAndFlush(Mockito.any(), Mockito.isA(ChannelPromise.class));
         // Ensure there is no call to debug() method
         Mockito.verify(logger, Mockito.times(0))
-                .debug(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
+                .debug(Mockito.anyString(), Mockito.any(), Mockito.any(), Mockito.any());
 
         // simulate channel closed
         aSession.handleChannelClosed();
@@ -803,7 +803,7 @@ public class SmtpAsyncSessionImplTest {
         // verify logging messages
         final ArgumentCaptor<Object> logCapture = ArgumentCaptor.forClass(Object.class);
         Mockito.verify(logger, Mockito.times(0))
-                .debug(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), logCapture.capture());
+                .debug(Mockito.anyString(), Mockito.any(), Mockito.any(), logCapture.capture());
         final List<Object> logMsgs = logCapture.getAllValues();
         Assert.assertNotNull(logMsgs, "log messages mismatched.");
         Assert.assertEquals(logMsgs.size(), 0, "log messages mismatched.");
@@ -822,7 +822,7 @@ public class SmtpAsyncSessionImplTest {
         aSession.execute(cmd);
         // verify logging messages
         Mockito.verify(logger, Mockito.times(1))
-                .error(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
+                .error(Mockito.anyString(), Mockito.any(), Mockito.any(), Mockito.any());
     }
 
     /**
@@ -848,7 +848,7 @@ public class SmtpAsyncSessionImplTest {
         aSession.execute(cmd);
 
         Mockito.verify(writePromise, Mockito.times(1)).addListener(Mockito.any(SmtpAsyncSessionImpl.class));
-        Mockito.verify(channel, Mockito.times(1)).writeAndFlush(Mockito.anyString(), Mockito.isA(ChannelPromise.class));
+        Mockito.verify(channel, Mockito.times(1)).writeAndFlush(Mockito.any(), Mockito.isA(ChannelPromise.class));
 
         try {
             // execute again, queue is not empty
@@ -858,8 +858,8 @@ public class SmtpAsyncSessionImplTest {
             Assert.assertNotNull(asyncEx, "Exception should occur.");
             Assert.assertEquals(asyncEx.getFailureType(), FailureType.COMMAND_NOT_ALLOWED, "Failure type mismatched.");
         }
-        Mockito.verify(logger, Mockito.times(1)).debug(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
-                Mockito.anyString());
+        Mockito.verify(logger, Mockito.times(1)).debug(Mockito.anyString(), Mockito.any(), Mockito.any(),
+                Mockito.any());
     }
 
     /**
@@ -897,10 +897,10 @@ public class SmtpAsyncSessionImplTest {
         }
 
         Mockito.verify(writePromise, Mockito.times(0)).addListener(Mockito.any(SmtpAsyncSessionImpl.class));
-        Mockito.verify(channel, Mockito.times(0)).writeAndFlush(Mockito.anyString(), Mockito.isA(ChannelPromise.class));
+        Mockito.verify(channel, Mockito.times(0)).writeAndFlush(Mockito.any(), Mockito.isA(ChannelPromise.class));
         // encountering the above exception in execute(), will not log the command sent over the wire
-        Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
-                Mockito.anyString());
+        Mockito.verify(logger, Mockito.times(0)).debug(Mockito.anyString(), Mockito.any(), Mockito.any(),
+                Mockito.any());
 
         Mockito.when(closePromise.isSuccess()).thenReturn(true);
         final SmtpFuture<Boolean> closeFuture = aSession.close();
@@ -995,9 +995,9 @@ public class SmtpAsyncSessionImplTest {
         final SmtpFuture<SmtpAsyncResponse> future = aSession.execute(cmd);
 
         Mockito.verify(writePromise, Mockito.times(1)).addListener(Mockito.any(SmtpAsyncSessionImpl.class));
-        Mockito.verify(channel, Mockito.times(1)).writeAndFlush(Mockito.anyString(), Mockito.isA(ChannelPromise.class));
+        Mockito.verify(channel, Mockito.times(1)).writeAndFlush(Mockito.any(), Mockito.isA(ChannelPromise.class));
         Mockito.verify(logger, Mockito.times(1))
-                .debug(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
+                .debug(Mockito.anyString(), Mockito.any(), Mockito.any(), Mockito.any());
 
         // simulate channel closed
         aSession.handleChannelClosed();
@@ -1047,7 +1047,7 @@ public class SmtpAsyncSessionImplTest {
         // Execute again to verify logger when isErrorEnabled() is false.
         aSession.execute(cmd);
         // verify logging messages
-        Mockito.verify(logger, Mockito.times(1)).error(Mockito.anyString(), Mockito.anyObject(),
-                Mockito.anyObject(), Mockito.anyObject());
+        Mockito.verify(logger, Mockito.times(1)).error(Mockito.anyString(), Mockito.any(),
+                Mockito.any(), Mockito.any());
     }
 }
