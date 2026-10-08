@@ -62,6 +62,7 @@
         <excludedJNILibraries />
         <excludedWarJNILibraries />
         <jdk.version>1.8</jdk.version>
+        <netty.version>4.2.19.Final</netty.version>
         <maven-surefire-plugin.version>3.1.2</maven-surefire-plugin.version>
         <maven-pmd-plugin.version>3.21.0</maven-pmd-plugin.version>
         <maven-checkstyle-plugin.version>3.0.0</maven-checkstyle-plugin.version>
@@ -101,7 +102,7 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-handler</artifactId>
-                <version>4.1.137.Final</version>
+                <version>${netty.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.sun.mail</groupId>

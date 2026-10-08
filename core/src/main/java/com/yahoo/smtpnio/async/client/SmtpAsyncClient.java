@@ -22,8 +22,6 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLParameters;
 
-import io.netty.handler.ssl.ClientAuth;
-import io.netty.handler.ssl.JdkSslContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,9 +36,9 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.concurrent.GenericFutureListener;
@@ -75,6 +73,9 @@ public class SmtpAsyncClient {
     /** Handler name for the ssl handler. */
     private static final String SSL_HANDLER = "sslHandler";
 
+    /** Endpoint identification algorithm checking the server certificate names the server, by the RFC 2818 rules RFC 6125 extends to SMTP. */
+    private static final String ENDPOINT_IDENTIFICATION_ALGORITHM = "HTTPS";
+
     /** Logger for debugging messages, errors and other info. */
     @Nonnull
     private final Logger logger;
@@ -94,7 +95,7 @@ public class SmtpAsyncClient {
      * @param numThreads number of threads to be used by the SMTP client
      */
     public SmtpAsyncClient(final int numThreads) {
-        this(new Bootstrap(), new NioEventLoopGroup(numThreads), LoggerFactory.getLogger(SmtpAsyncClient.class));
+        this(new Bootstrap(), new MultiThreadIoEventLoopGroup(numThreads, NioIoHandler.newFactory()), LoggerFactory.getLogger(SmtpAsyncClient.class));
     }
 
     /**
@@ -298,21 +299,28 @@ public class SmtpAsyncClient {
      */
     static SslHandler createSSLHandler(@Nonnull final ByteBufAllocator alloc, @Nonnull final String host, final int port,
             @Nullable final Collection<String> sniNames, @Nullable final SSLContext sslCtxt) throws SSLException {
-        // Use the passed SslContext only if non-null. Otherwise build a default client SslContext for use.
-        final SslContext sslContext = (sslCtxt == null) ? SslContextBuilder.forClient().build() : new JdkSslContext(sslCtxt, true, ClientAuth.NONE);
+        // Use the passed SSLContext only if non-null. Otherwise build a default client SslContext for use.
+        final SSLEngine engine;
+        if (sslCtxt == null) {
+            engine = SslContextBuilder.forClient().build().newEngine(alloc, host, port);
+        } else {
+            engine = sslCtxt.createSSLEngine(host, port);
+            engine.setUseClientMode(true);
+        }
+        // Start from the engine's own parameters so the defaults it derived from the context and the peer host are kept.
+        final SSLParameters params = engine.getSSLParameters();
+        // Set on both kinds of engine, since a caller's SSLContext does not check the name by itself. The certificate is matched against the SNI
+        // name when one is sent, and against the host otherwise.
+        params.setEndpointIdentificationAlgorithm(ENDPOINT_IDENTIFICATION_ALGORITHM);
         if (sniNames != null && !sniNames.isEmpty()) { // SNI support
             final List<SNIServerName> serverNames = new ArrayList<>();
             for (final String sni : sniNames) {
                 serverNames.add(new SNIHostName(sni));
             }
-            final SSLParameters params = new SSLParameters();
             params.setServerNames(serverNames);
-            final SSLEngine engine = sslContext.newEngine(alloc, host, port);
-            engine.setSSLParameters(params);
-            return new SslHandler(engine);
-        } else {
-            return sslContext.newHandler(alloc, host, port);
         }
+        engine.setSSLParameters(params);
+        return new SslHandler(engine);
     }
 
     /**
