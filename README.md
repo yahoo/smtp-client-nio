@@ -167,6 +167,8 @@ Version 1.0.4 adds startTls support.
 > 2. Then send STARTTLS command and check if response code is 220.
 > 3. Finally, upgrade plain connection to secure connection.
 
+Over both ssl and startTls, the server certificate must name the server: the SNI name when one is set, otherwise the host. A client that connects by IP address should pass the server's host name as an SNI name.
+
 This release, version 1.1.0, is the second official release. After this release, current supported SMTP commands are:
 - **EHLO**
 - **HELO**
