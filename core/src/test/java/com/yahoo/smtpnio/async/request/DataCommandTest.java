@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -188,7 +189,7 @@ public class DataCommandTest {
                 "Expected results mismatched");
         final String message = cmd.getNextCommandLineAfterContinuation(new SmtpResponse("200 123-Not needed"))
                 .toString(StandardCharsets.US_ASCII);
-        Assert.assertTrue(message.contains("\r\nHi Bart,\n\nThis is a reminder that you have outstanding payments due soon.\r\n.\r\n"),
+        Assert.assertTrue(message.contains("\r\nHi Bart,\r\n\r\nThis is a reminder that you have outstanding payments due soon.\r\n.\r\n"),
                 "Output does not contain the expected string");
 
         cmd.cleanup();
@@ -226,6 +227,49 @@ public class DataCommandTest {
 
         Assert.assertEquals(message.substring(0, message.length() - 5), rawEmail); // strip away the terminating chars
         Assert.assertTrue(message.endsWith("\r\n.\r\n"));
+    }
+
+    /**
+     * Tests that a line holding a single period in the message is stuffed rather than ending the content early.
+     *
+     * @throws SmtpAsyncClientException will not throw in this test
+     */
+    @Test
+    public void testEmbeddedEndOfDataIsStuffed() throws SmtpAsyncClientException {
+        final byte[] payload = "Subject: a\r\n\r\nhi\r\n.\r\nRSET\r\nMAIL FROM:<a@example.com>\r\n".getBytes(StandardCharsets.US_ASCII);
+        final DataCommand cmd = new DataCommand(() -> payload);
+        final String message = cmd.getNextCommandLineAfterContinuation(new SmtpResponse("354 Go Ahead")).toString(StandardCharsets.US_ASCII);
+        Assert.assertEquals(message, "Subject: a\r\n\r\nhi\r\n..\r\nRSET\r\nMAIL FROM:<a@example.com>\r\n.\r\n",
+                "Content should be dot-stuffed and end with a single indicator");
+    }
+
+    /**
+     * Tests that a body line starting with a period, written by JavaMail as is, is stuffed.
+     *
+     * @throws SmtpAsyncClientException will not throw in this test
+     * @throws MessagingException will not throw in this test
+     */
+    @Test
+    public void testSmtpMessageLeadingPeriodIsStuffed() throws SmtpAsyncClientException, MessagingException {
+        final SMTPMessage msg = new SMTPMessage((Session) null);
+        msg.setText("first\r\n.\r\n.second\r\n");
+        final DataCommand cmd = DataCommand.fromSmtpMessage(msg);
+        final String message = cmd.getNextCommandLineAfterContinuation(new SmtpResponse("354 Go Ahead")).toString(StandardCharsets.US_ASCII);
+        Assert.assertTrue(message.endsWith("\r\nfirst\r\n..\r\n..second\r\n.\r\n"), "Body should be dot-stuffed: " + message);
+    }
+
+    /**
+     * Tests that a large message is copied in full.
+     *
+     * @throws SmtpAsyncClientException will not throw in this test
+     */
+    @Test
+    public void testLargeMessage() throws SmtpAsyncClientException {
+        final byte[] payload = new byte[20000];
+        Arrays.fill(payload, (byte) 'a');
+        final DataCommand cmd = new DataCommand(() -> payload);
+        final ByteBuf message = cmd.getNextCommandLineAfterContinuation(new SmtpResponse("354 Go Ahead"));
+        Assert.assertEquals(message.readableBytes(), payload.length + "\r\n.\r\n".length(), "Wrong length");
     }
 
     /**
