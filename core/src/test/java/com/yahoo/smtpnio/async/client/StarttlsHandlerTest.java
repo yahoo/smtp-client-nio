@@ -597,9 +597,10 @@ public class StarttlsHandlerTest {
      *
      * @throws InterruptedException will not throw in this test
      * @throws TimeoutException will not throw in this test
+     * @throws SmtpAsyncClientException will not throw in this test
      */
     @Test
-    public void testExceptionCaughtChannelWasClosedAlready() throws InterruptedException, TimeoutException {
+    public void testExceptionCaughtChannelWasClosedAlready() throws InterruptedException, TimeoutException, SmtpAsyncClientException {
         final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<>();
         final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 465, true).setSessionContext("myCtx")
                 .build();
@@ -635,10 +636,11 @@ public class StarttlsHandlerTest {
      * @throws InterruptedException will not throw in this test
      * @throws TimeoutException will not throw in this test
      * @throws IllegalAccessException will not throw in this test
+     * @throws SmtpAsyncClientException will not throw in this test
      */
     @Test
     public void testUserEventTriggeredIdleStateEventReadIdle()
-            throws IllegalArgumentException, InterruptedException, TimeoutException, IllegalAccessException {
+            throws IllegalArgumentException, InterruptedException, TimeoutException, IllegalAccessException, SmtpAsyncClientException {
         final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<>();
         final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 465, true).setSessionContext("myCtx")
                 .build();
@@ -685,9 +687,10 @@ public class StarttlsHandlerTest {
      *
      * @throws IllegalArgumentException will not throw in this test
      * @throws IllegalAccessException will not throw in this test
+     * @throws SmtpAsyncClientException will not throw in this test
      */
     @Test
-    public void testUserEventTriggeredIdleStateEventNotReadIdle() throws IllegalArgumentException, IllegalAccessException {
+    public void testUserEventTriggeredIdleStateEventNotReadIdle() throws IllegalArgumentException, IllegalAccessException, SmtpAsyncClientException {
         final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<>();
         final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 465, true).setSessionContext("myCtx")
                 .build();
@@ -706,9 +709,10 @@ public class StarttlsHandlerTest {
      *
      * @throws IllegalArgumentException will not throw in this test
      * @throws IllegalAccessException will not throw in this test
+     * @throws SmtpAsyncClientException will not throw in this test
      */
     @Test
-    public void testUserEventTriggeredNotIdleStateEvent() throws IllegalArgumentException, IllegalAccessException {
+    public void testUserEventTriggeredNotIdleStateEvent() throws IllegalArgumentException, IllegalAccessException, SmtpAsyncClientException {
         final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<>();
         final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 465, true).setSessionContext("myCtx")
                 .build();
@@ -728,9 +732,11 @@ public class StarttlsHandlerTest {
      * @throws IllegalArgumentException will not throw in this test
      * @throws InterruptedException will not throw in this test
      * @throws TimeoutException will not throw in this test
+     * @throws SmtpAsyncClientException will not throw in this test
      */
     @Test
-    public void testChannelInactive() throws IllegalArgumentException, IllegalAccessException, InterruptedException, TimeoutException {
+    public void testChannelInactive() throws IllegalArgumentException, IllegalAccessException, InterruptedException, TimeoutException,
+            SmtpAsyncClientException {
         final SmtpFuture<SmtpAsyncCreateSessionResponse> smtpFuture = new SmtpFuture<>();
         final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.one.two.three.com", 465, true).setSessionContext("myCtx")
                 .build();

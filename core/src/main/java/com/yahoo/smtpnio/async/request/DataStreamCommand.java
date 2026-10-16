@@ -13,6 +13,8 @@ import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 
+import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
+import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
 import com.yahoo.smtpnio.async.response.SmtpResponse;
 
 import io.netty.buffer.ByteBuf;
@@ -63,8 +65,15 @@ public class DataStreamCommand extends AbstractSmtpCommand {
         return message;
     }
 
+    /**
+     * Reads the whole message and builds the message content followed by the end-of-data indicator.
+     *
+     * @param serverResponse the server response that asked for the message
+     * @return the message bytes followed by CRLF.CRLF
+     * @throws SmtpAsyncClientException with {@link FailureType#READ_MESSAGE_FAILED} when reading the message fails
+     */
     @Override
-    public ByteBuf getNextCommandLineAfterContinuation(@Nonnull final SmtpResponse serverResponse) {
+    public ByteBuf getNextCommandLineAfterContinuation(@Nonnull final SmtpResponse serverResponse) throws SmtpAsyncClientException {
         try {
             final byte[] bytes = toByteArray(message);
             return Unpooled.buffer(bytes.length + SmtpClientConstants.PADDING_LEN)
@@ -72,8 +81,8 @@ public class DataStreamCommand extends AbstractSmtpCommand {
                 .writeBytes(AbstractSmtpCommand.CRLF_B)
                 .writeByte(SmtpClientConstants.PERIOD)
                 .writeBytes(AbstractSmtpCommand.CRLF_B);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } catch (final IOException e) {
+            throw new SmtpAsyncClientException(FailureType.READ_MESSAGE_FAILED, e);
         }
     }
 
