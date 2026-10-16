@@ -7,6 +7,7 @@ package com.yahoo.smtpnio.async.request;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
@@ -17,6 +18,7 @@ import java.util.function.Supplier;
 import javax.mail.MessagingException;
 import javax.mail.Session;
 
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
@@ -26,6 +28,8 @@ import com.sun.mail.smtp.SMTPMessage;
 import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
 import com.yahoo.smtpnio.async.response.SmtpResponse;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.stream.ChunkedStream;
@@ -118,9 +122,14 @@ public class DataStreamCommandTest {
     @Test
     public void testReadingMessageFails() {
         final IOException readError = new IOException("Fails");
-        final DataStreamCommand cmd = new DataStreamCommand(new ByteArrayInputStream(new byte[0]) {
+        final DataStreamCommand cmd = new DataStreamCommand(new InputStream() {
             @Override
-            public int read(final byte[] b) throws IOException {
+            public int read() throws IOException {
+                throw readError;
+            }
+
+            @Override
+            public int read(final byte[] b, final int off, final int len) throws IOException {
                 throw readError;
             }
         });
@@ -173,6 +182,50 @@ public class DataStreamCommandTest {
         for (final Field field : fieldsToCheck) {
             Assert.assertNull(field.get(cmd), "Cleanup should set " + field.getName() + " as null");
         }
+    }
+
+    /**
+     * Tests that the content is dot-stuffed, so a line holding a single period in the message does not end it.
+     *
+     * @throws SmtpAsyncClientException will not throw in this test
+     */
+    @Test
+    public void testEmbeddedEndOfDataIsStuffed() throws SmtpAsyncClientException {
+        final SmtpRequest cmd = new DataStreamCommand(
+                new ByteArrayInputStream("Subject: a\r\n\r\nhi\r\n.\r\nRSET\r\n".getBytes(StandardCharsets.US_ASCII)));
+        final String message = cmd.getNextCommandLineAfterContinuation(new SmtpResponse("354 Go Ahead"))
+                .toString(StandardCharsets.US_ASCII);
+        Assert.assertEquals(message, "Subject: a\r\n\r\nhi\r\n..\r\nRSET\r\n.\r\n", "Content should be dot-stuffed");
+    }
+
+    /**
+     * Tests that the stream written by encodeCommandAfterContinuation is dot-stuffed and ends with the end of mail data indicator.
+     *
+     * @throws Exception will not throw in this test
+     */
+    @Test
+    public void testEncodeCommandAfterContinuationIsStuffed() throws Exception {
+        final SmtpRequest cmd = new DataStreamCommand(new ByteArrayInputStream(".\r\nRSET\r\n.".getBytes(StandardCharsets.US_ASCII)));
+        final Channel channel = Mockito.mock(Channel.class);
+        final ChannelPromise channelPromise = Mockito.mock(ChannelPromise.class);
+        cmd.encodeCommandAfterContinuation(channel, new Supplier<ChannelPromise>() {
+            @Override
+            public ChannelPromise get() {
+                return channelPromise;
+            }
+        }, Mockito.mock(SmtpResponse.class));
+
+        final ArgumentCaptor<ChunkedStream> captor = ArgumentCaptor.forClass(ChunkedStream.class);
+        Mockito.verify(channel, Mockito.times(1)).write(captor.capture(), Mockito.eq(channelPromise));
+        final ChunkedStream stream = captor.getValue();
+        final StringBuilder written = new StringBuilder();
+        while (!stream.isEndOfInput()) {
+            final ByteBuf chunk = stream.readChunk(UnpooledByteBufAllocator.DEFAULT);
+            written.append(chunk.toString(StandardCharsets.US_ASCII));
+            chunk.release();
+        }
+        stream.close();
+        Assert.assertEquals(written.toString(), "..\r\nRSET\r\n..\r\n.\r\n", "Stream should be dot-stuffed");
     }
 
     /**
