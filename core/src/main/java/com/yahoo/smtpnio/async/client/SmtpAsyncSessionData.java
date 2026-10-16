@@ -11,6 +11,9 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
 
+import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
+import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
+
 /**
  * This class defines session data associated with {@link SmtpAsyncClient}.
  */
@@ -141,8 +144,12 @@ public final class SmtpAsyncSessionData {
      * @param port port number
      * @param enableSsl whether if SSL is enabled
      * @return {@link DataBuilder} instance with the specified arguments
+     * @throws SmtpAsyncClientException with {@link FailureType#INVALID_INPUT} when the host is null
      */
-    public static DataBuilder newBuilder(@Nonnull final String host, final int port, final boolean enableSsl) {
+    public static DataBuilder newBuilder(@Nonnull final String host, final int port, final boolean enableSsl) throws SmtpAsyncClientException {
+        if (host == null) {
+            throw new SmtpAsyncClientException(FailureType.INVALID_INPUT, "host cannot be null");
+        }
         return new DataBuilder(host, port, enableSsl);
     }
 

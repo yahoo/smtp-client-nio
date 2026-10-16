@@ -81,7 +81,10 @@ public class SmtpAsyncClientException extends Exception {
         SSL_CONTEXT_EXCEPTION("Failed to create ssl context."),
 
         /** No STARTTLS capability. */
-        NO_STARTTLS_CAPABILITY("Server has no STARTTLS capability.");
+        NO_STARTTLS_CAPABILITY("Server has no STARTTLS capability."),
+
+        /** Reading the message to be sent failed, for example an I/O error from the caller's message stream. */
+        READ_MESSAGE_FAILED("Failed to read the message to be sent.");
 
         /**
          * Constructor to add an error message for failure type belonging to this enum.

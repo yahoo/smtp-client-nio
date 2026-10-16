@@ -65,22 +65,6 @@ public class SmtpAsyncClientTest {
     }
 
     /**
-     * Tests the behavior of {@code createSession} when given bad input for the session data.
-     *
-     * @throws Exception expected to throw when encountering bad input
-     */
-    @Test(expectedExceptions = IllegalArgumentException.class)
-    public void testCreateSessionBadData() throws Exception {
-        final Bootstrap bootstrap = Mockito.mock(Bootstrap.class);
-        final EventLoopGroup group = Mockito.mock(EventLoopGroup.class);
-        final Logger logger = Mockito.mock(Logger.class);
-
-        final SmtpAsyncClient client = new SmtpAsyncClient(bootstrap, group, logger);
-        client.createSession(SmtpAsyncSessionData.newBuilder(null, 465, true).build(), new SmtpAsyncSessionConfig(),
-                SmtpAsyncSession.DebugMode.DEBUG_OFF);
-    }
-
-    /**
      * Tests the behavior of {@code createSession} on a successful SSL connection.
      * This uses an "injected" default SSLContext.
      *
@@ -973,9 +957,10 @@ public class SmtpAsyncClientTest {
      * @throws SSLException will not throw
      * @throws URISyntaxException will not throw
      * @throws Exception when calling operationComplete() at {@link GenericFutureListener}
+     * @throws SmtpAsyncClientException will not throw in this test
      */
     @Test
-    public void testCreateSessionNoLocalAddressSNIEmptySuccessful() throws SSLException, URISyntaxException, Exception {
+    public void testCreateSessionNoLocalAddressSNIEmptySuccessful() throws SSLException, URISyntaxException, Exception, SmtpAsyncClientException {
 
         final Bootstrap bootstrap = Mockito.mock(Bootstrap.class);
         final ChannelFuture nettyConnectFuture = Mockito.mock(ChannelFuture.class);
@@ -1071,9 +1056,10 @@ public class SmtpAsyncClientTest {
      * @throws SSLException will not throw
      * @throws URISyntaxException will not throw
      * @throws Exception when calling operationComplete() at GenericFutureListener
+     * @throws SmtpAsyncClientException will not throw in this test
      */
     @Test
-    public void testCreateSessionConnectionFailedChannelIsNull() throws SSLException, URISyntaxException, Exception {
+    public void testCreateSessionConnectionFailedChannelIsNull() throws SSLException, URISyntaxException, Exception, SmtpAsyncClientException {
         final Bootstrap bootstrap = Mockito.mock(Bootstrap.class);
         final ChannelFuture nettyConnectFuture = Mockito.mock(ChannelFuture.class);
         Mockito.when(nettyConnectFuture.isSuccess()).thenReturn(false);

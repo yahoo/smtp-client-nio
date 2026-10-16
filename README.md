@@ -75,6 +75,7 @@ final SmtpAsyncClient smtpClient = new SmtpAsyncClient(numOfThreads);
 final boolean enableSsl = true;
 
 // This example defines a connection to smtp.example.com through port 465 over SSL
+// newBuilder throws SmtpAsyncClientException (INVALID_INPUT) when the host is null
 final SmtpAsyncSessionData sessionData = SmtpAsyncSessionData.newBuilder("smtp.example.com", 465, enableSsl)
         .setSessionContext("client007") // optional parameter used as an ID for debugging purposes
         .setSniNames(null) // optional list of SNI names

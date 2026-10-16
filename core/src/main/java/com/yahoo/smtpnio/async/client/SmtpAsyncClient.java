@@ -158,10 +158,6 @@ public class SmtpAsyncClient {
             final boolean isSsl) {
         final String host = sessionData.getHost();
 
-        if (host == null) {
-            throw new IllegalArgumentException("host cannot be null");
-        }
-
         final int port = sessionData.getPort();
         final boolean isStarttls = config.getEnableStarttls();
         final InetSocketAddress localAddress = sessionData.getLocalAddress();

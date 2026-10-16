@@ -6,12 +6,10 @@ package com.yahoo.smtpnio.async.request;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -115,25 +113,26 @@ public class DataStreamCommandTest {
     }
 
     /**
-     * Tests that errors are propagated.
-     *
-     * @throws IOException will not throw in this test
+     * Tests that an I/O error while reading the message is reported as {@code READ_MESSAGE_FAILED} with the I/O error as cause.
      */
     @Test
-    public void testWritingFails() throws IOException {
-        final SmtpRequest cmd = new DataStreamCommand(new FileInputStream(Files.createTempFile("prefix", "suffix").toFile()) {
+    public void testReadingMessageFails() {
+        final IOException readError = new IOException("Fails");
+        final DataStreamCommand cmd = new DataStreamCommand(new ByteArrayInputStream(new byte[0]) {
             @Override
-            public synchronized int read(final byte[] b) throws IOException {
-                throw new IOException("Fails");
+            public int read(final byte[] b) throws IOException {
+                throw readError;
             }
         });
 
-        Assert.assertThrows(new Assert.ThrowingRunnable() {
+        final SmtpAsyncClientException ex = Assert.expectThrows(SmtpAsyncClientException.class, new Assert.ThrowingRunnable() {
             @Override
-            public void run() throws Throwable {
-                cmd.getNextCommandLineAfterContinuation(new SmtpResponse("200 123-Not needed"));
+            public void run() throws SmtpAsyncClientException {
+                cmd.getNextCommandLineAfterContinuation(new SmtpResponse("354 Start mail input"));
             }
         });
+        Assert.assertEquals(ex.getFailureType(), SmtpAsyncClientException.FailureType.READ_MESSAGE_FAILED, "Failure type mismatched");
+        Assert.assertSame(ex.getCause(), readError, "Cause should be the I/O error");
     }
 
     /**
