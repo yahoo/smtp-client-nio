@@ -4,11 +4,9 @@
  */
 package com.yahoo.smtpnio.async.request;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.SequenceInputStream;
 import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
@@ -29,7 +27,6 @@ import io.netty.handler.stream.ChunkedStream;
 public class DataStreamCommand extends AbstractSmtpCommand {
     /** String literal for "DATA". */
     private static final String DATA = "DATA";
-    private static final byte[] END_OF_INPUT = {'\r', '\n', '.', '\r', '\n'};
 
     /** The message to be sent. */
     private InputStream message;
@@ -75,12 +72,7 @@ public class DataStreamCommand extends AbstractSmtpCommand {
     @Override
     public ByteBuf getNextCommandLineAfterContinuation(@Nonnull final SmtpResponse serverResponse) throws SmtpAsyncClientException {
         try {
-            final byte[] bytes = toByteArray(message);
-            return Unpooled.buffer(bytes.length + SmtpClientConstants.PADDING_LEN)
-                .writeBytes(bytes)
-                .writeBytes(AbstractSmtpCommand.CRLF_B)
-                .writeByte(SmtpClientConstants.PERIOD)
-                .writeBytes(AbstractSmtpCommand.CRLF_B);
+            return Unpooled.wrappedBuffer(toByteArray(new DotStuffingInputStream(message)));
         } catch (final IOException e) {
             throw new SmtpAsyncClientException(FailureType.READ_MESSAGE_FAILED, e);
         }
@@ -111,7 +103,7 @@ public class DataStreamCommand extends AbstractSmtpCommand {
 
     @Override
     public void encodeCommandAfterContinuation(final Channel channel, final Supplier<ChannelPromise> writeFuture, final SmtpResponse response) {
-        channel.write(new ChunkedStream(new SequenceInputStream(message, new ByteArrayInputStream(END_OF_INPUT))), writeFuture.get());
+        channel.write(new ChunkedStream(new DotStuffingInputStream(message)), writeFuture.get());
     }
 
     @Override

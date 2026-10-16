@@ -4,14 +4,18 @@
  */
 package com.yahoo.smtpnio.async.request;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
 import javax.mail.MessagingException;
 
 import com.sun.mail.smtp.SMTPMessage;
+import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException;
+import com.yahoo.smtpnio.async.exception.SmtpAsyncClientException.FailureType;
 import com.yahoo.smtpnio.async.response.SmtpResponse;
 
 import io.netty.buffer.ByteBuf;
@@ -46,6 +50,9 @@ public class DataCommand extends AbstractSmtpCommand {
     /** String literal for "DATA". */
     private static final String DATA = "DATA";
 
+    /** Number of bytes to copy from the encoded message at a time. */
+    private static final int COPY_LEN = 8192;
+
     /** The message to be sent. */
     private Supplier<byte[]> message;
 
@@ -60,16 +67,20 @@ public class DataCommand extends AbstractSmtpCommand {
     }
 
     @Override
-    public ByteBuf getNextCommandLineAfterContinuation(@Nonnull final SmtpResponse serverResponse) {
+    public ByteBuf getNextCommandLineAfterContinuation(@Nonnull final SmtpResponse serverResponse) throws SmtpAsyncClientException {
         final byte[] bytes = message.get();
         if (bytes == null) {
             return null;
         }
-        return Unpooled.buffer(bytes.length + SmtpClientConstants.PADDING_LEN)
-            .writeBytes(bytes)
-            .writeBytes(AbstractSmtpCommand.CRLF_B)
-            .writeByte(SmtpClientConstants.PERIOD)
-            .writeBytes(AbstractSmtpCommand.CRLF_B);
+        final ByteBuf buffer = Unpooled.buffer(bytes.length + SmtpClientConstants.PADDING_LEN);
+        try (InputStream data = new DotStuffingInputStream(new ByteArrayInputStream(bytes))) {
+            while (buffer.writeBytes(data, COPY_LEN) != -1) {
+                // keep copying until the end of the encoded message
+            }
+        } catch (final IOException e) {
+            throw new SmtpAsyncClientException(FailureType.READ_MESSAGE_FAILED, e);
+        }
+        return buffer;
     }
 
     /**
