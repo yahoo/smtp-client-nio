@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.LongUnaryOperator;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -183,13 +182,7 @@ public class SmtpAsyncClient {
                     return;
                 }
 
-                // avoid negative ids
-                final long sessionId = sessionCount.getAndUpdate(new LongUnaryOperator() { // atomic update
-                    @Override
-                    public long applyAsLong(final long counter) { // increment by 1 unless it overflows
-                        return counter + 1 < 0 ? 1 : counter + 1;
-                    }
-                });
+                final long sessionId = sessionCount.getAndUpdate(SmtpAsyncClient::nextSessionId);
 
                 // create SslHandler for secure connection
                 SslHandler sslHandler = null;
@@ -317,6 +310,16 @@ public class SmtpAsyncClient {
         }
         engine.setSSLParameters(params);
         return new SslHandler(engine);
+    }
+
+    /**
+     * Computes the session ID following the given one, wrapping around to 1 instead of overflowing to negative IDs.
+     *
+     * @param counter the current session ID
+     * @return the next session ID
+     */
+    static long nextSessionId(final long counter) {
+        return counter + 1 < 0 ? 1 : counter + 1;
     }
 
     /**

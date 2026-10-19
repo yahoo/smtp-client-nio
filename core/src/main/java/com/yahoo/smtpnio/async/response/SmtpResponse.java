@@ -121,9 +121,9 @@ public class SmtpResponse {
         final char thirdDigit = response.charAt(2);
 
         if (
-                firstDigit < '2' || firstDigit > '5' || // First digit must be between 2-5 (inclusive)
-                secondDigit < '0' || secondDigit > '5' || // Second digit must be between 0-5 (inclusive)
-                thirdDigit < '0' || thirdDigit > '9' // Third digit must be between 0-9 (inclusive)
+                firstDigit < '2' || firstDigit > '5' // First digit must be between 2-5 (inclusive)
+                || secondDigit < '0' || secondDigit > '5' // Second digit must be between 0-5 (inclusive)
+                || thirdDigit < '0' || thirdDigit > '9' // Third digit must be between 0-9 (inclusive)
         ) {
             throw new SmtpAsyncClientException(SmtpAsyncClientException.FailureType.INVALID_SERVER_RESPONSE,
                     "Server response does not contain a valid reply code");

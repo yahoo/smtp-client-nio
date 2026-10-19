@@ -1,10 +1,11 @@
 <?xml version="1.0"?>
-<ruleset name="PMD-Rules">
+<ruleset name="PMD-Rules"
+    xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
     <description>lafaspot PMD rules.</description>
     <!-- String Instantiation -->
-    <rule ref="rulesets/java/strings.xml/StringInstantiation"><priority>1</priority></rule>
-    <!-- String Instantiation -->
-    <rule ref="rulesets/java/logging-java.xml/GuardLogStatementJavaUtil"><priority>1</priority></rule>
+    <rule ref="category/java/performance.xml/StringInstantiation"><priority>1</priority></rule>
     <!-- Cyclomatic Complexity -->
-    <!-- <rule ref="rulesets/java/codesize.xml/CyclomaticComplexity"><priority>1</priority></rule> -->
+    <!-- <rule ref="category/java/design.xml/CyclomaticComplexity"><priority>1</priority></rule> -->
 </ruleset>
